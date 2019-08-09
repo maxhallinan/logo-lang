@@ -1,10 +1,10 @@
-module Expr 
+module ExprAnn
   ( Ann(..)
   , Env
   , Expr(..)
   , ExprAnn(..)
-  , Location(..)
-  , Position(..)
+  , SrcLoc(..)
+  , SrcSpan(..)
   , SFrm(..)
   ) where
 
@@ -15,24 +15,21 @@ import Data.Map (Map)
 import Data.Newtype (class Newtype)
 
 data ExprAnn = ExprAnn Expr Ann
+derive instance exprAnnEq :: Eq ExprAnn
 
 instance showExprAnn :: Show ExprAnn where
   show (ExprAnn expr _) = show expr
 
-newtype Ann = Ann { srcSpan :: Location }
-derive instance newtypeAnn :: Newtype Ann _
-
-newtype Location = SrcSpan { begin :: Position, end :: Position }
-derive instance newtypeLocation :: Newtype Location _
-
-newtype Position = SrcLoc { line :: Int, column :: Int }
-derive instance newtypePosition :: Newtype Position _
+type Ann = { srcSpan :: SrcSpan }
+type SrcSpan = { begin :: SrcLoc, end :: SrcLoc }
+type SrcLoc = { line :: Int, column :: Int }
 
 data Expr 
   = Sym String
   | SFrm SFrm
   | Fn Env (List ExprAnn) ExprAnn
   | Lst (List ExprAnn)
+derive instance eqExpr :: Eq Expr
 
 instance showExpr :: Show Expr where
   show (Sym name) = name
@@ -53,6 +50,7 @@ data SFrm
   | IsEq
   | Lambda
   | Quote
+derive instance eqSFrm :: Eq SFrm
 
 instance showSFrm :: Show SFrm where
   show First = "first"
