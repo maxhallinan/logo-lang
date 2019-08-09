@@ -6,12 +6,14 @@ You can edit this file as you like.
     "my-project"
 , dependencies =
     [ "console"
+    , "control"
     , "effect"
     , "foldable-traversable"
     , "newtype"
     , "ordered-collections"
     , "parsing"
     , "psci-support"
+    , "strings"
     ]
 , packages =
     ./packages.dhall

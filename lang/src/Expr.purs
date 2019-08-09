@@ -19,13 +19,13 @@ data ExprAnn = ExprAnn Expr Ann
 instance showExprAnn :: Show ExprAnn where
   show (ExprAnn expr _) = show expr
 
-newtype Ann = Ann { location :: Location }
+newtype Ann = Ann { srcSpan :: Location }
 derive instance newtypeAnn :: Newtype Ann _
 
-newtype Location = Location { begin :: Position, end :: Position }
+newtype Location = SrcSpan { begin :: Position, end :: Position }
 derive instance newtypeLocation :: Newtype Location _
 
-newtype Position = Position { line :: Int, column :: Int }
+newtype Position = SrcLoc { line :: Int, column :: Int }
 derive instance newtypePosition :: Newtype Position _
 
 data Expr 
