@@ -1,4 +1,4 @@
-module Eval 
+module Eval
   ( ErrName(..)
   , Eval
   , EvalErr(..)
@@ -18,14 +18,14 @@ import Control.Monad.State.Trans (StateT, runStateT, withStateT)
 import Control.Monad.State.Class (class MonadState)
 import Data.Either (Either(..), either)
 import Data.Identity (Identity)
-import Data.List (List(..), head, zipWith)
+import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Traversable (class Traversable, sequence, traverse)
 import Data.Tuple (Tuple(..), fst)
 import Data.Unit (unit)
-import ExprAnn (Ann, Env, Expr(..), ExprAnn(..), SrcSpan)
+import ExprAnn (Ann, Env, Expr(..), ExprAnn(..), SFrm(..), SrcSpan)
 
 type Eval res = EvalT Identity Env res
 
@@ -57,8 +57,8 @@ data ErrName
 instance showEvalErr :: Show EvalErr where
   show _ = "EvalErr"
 
-throw :: forall m e a. Monad m => ErrName -> Ann -> EvalT m e a
-throw name ann = throwError $ EvalErr name ann.srcSpan
+throw :: forall m e a. Monad m => Ann -> ErrName -> EvalT m e a
+throw ann name = throwError $ EvalErr name ann.srcSpan
 
 newtype EvalState env = EvalState { env :: env }
 derive instance evalStateNewtype :: Newtype (EvalState a) _
@@ -66,7 +66,7 @@ derive instance evalStateNewtype :: Newtype (EvalState a) _
 getEnv :: forall m e a. Monad m => EvalT m Env Env
 getEnv = S.get >>= (unwrap >>> _.env >>> pure)
 
-runMany :: Env -> List ExprAnn -> Identity (Tuple (Either EvalErr (List ExprAnn)) Env)
+runMany :: Env -> L.List ExprAnn -> Identity (Tuple (Either EvalErr (L.List ExprAnn)) Env)
 runMany env exprs = run env $ evalMany exprs
 
 runOne :: Env -> ExprAnn -> Identity (Tuple (Either EvalErr ExprAnn) Env)
@@ -81,19 +81,21 @@ run env evaled = resultWithEnv <$> rn evaled evalState
 resultWithEnv :: forall a b. Tuple a (EvalState Env) -> Tuple a Env
 resultWithEnv (Tuple res (EvalState { env })) = Tuple res env
 
-evalMany :: List ExprAnn -> Eval (List ExprAnn)
+evalMany :: L.List ExprAnn -> Eval (L.List ExprAnn)
 evalMany = sequence <<< map eval
 
 evalOne :: ExprAnn -> Eval ExprAnn
 evalOne = eval
 
 eval :: ExprAnn -> Eval ExprAnn
-eval (ExprAnn expr ann) = 
+eval (ExprAnn expr ann) =
   case expr of
     (Sym name) ->
       evalSym ann name
-    _ -> 
-      throw NotImplemented ann
+    (Lst (L.Cons (ExprAnn (SFrm sfrm) _) args)) ->
+      evalSFrm ann sfrm args
+    _ ->
+      throw ann NotImplemented
 
 evalSym :: Ann -> String -> Eval ExprAnn
 evalSym ann name = do
@@ -102,11 +104,14 @@ evalSym ann name = do
     Just expr ->
       pure expr
     Nothing ->
-      throw (UnknownVar name) ann
+      throw ann (UnknownVar name)
 
-{-- evalSFrm :: E.SFrm -> E.Ann -> Args -> Eval E.Expr --}
-{-- evalSFrm _ ann Nil = throw NumArgs ann --}
-{-- evalSFrm E.Quote ann args = evalQuote ann args --}
+type Args = L.List ExprAnn
+
+evalSFrm :: Ann -> SFrm -> Args -> Eval ExprAnn
+evalSFrm ann _ L.Nil = throw ann NumArgs
+evalSFrm ann Quote args = evalQuote ann args
+evalSFrm ann _ _ = throw ann NotImplemented
 {-- evalSFrm E.First ann args = evalFirst ann args --}
 {-- evalSFrm E.Rest ann args = evalRest ann args --}
 {-- evalSFrm E.If ann args = evalIf ann args --}
@@ -206,9 +211,9 @@ evalSym ann name = do
 {--       throw WrongTipe ann --}
 {-- evalLambda ann _ = throw NumArgs ann --}
 
-{-- evalQuote :: forall a. E.Ann -> Args -> Eval E.Expr --}
-{-- evalQuote ann (Cons attr Nil) = pure $ unfoldAttr attr --}
-{-- evalQuote ann _ = throw NumArgs ann --}
+evalQuote :: Ann -> Args -> Eval ExprAnn
+evalQuote ann (L.Cons expr L.Nil) = pure $ expr
+evalQuote ann _ = throw ann NumArgs
 
 {-- updateEnv :: String -> E.Expr -> Eval Unit --}
 {-- updateEnv key val = do --}
