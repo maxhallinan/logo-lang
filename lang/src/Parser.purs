@@ -1,4 +1,4 @@
-module Parser (Parser, parseStr) where
+module Parser (Parser, parseMany, parseOne) where
 
 import Prelude
 
@@ -17,12 +17,17 @@ import Text.Parsing.Parser.Token as T
 
 type Parser a = P.Parser String a
 
-parseStr :: String -> Either P.ParseError (List E.ExprAnn)
-parseStr = flip P.runParser program
+parseMany :: String -> Either P.ParseError (List E.ExprAnn)
+parseMany = flip P.runParser $ fileOf (manyOf exprAnn)
 
-program :: Parser (List E.ExprAnn)
-program = C.between lexer.whiteSpace S.eof exprAnns
-  where exprAnns = C.sepBy exprAnn lexer.whiteSpace
+parseOne :: String -> Either P.ParseError E.ExprAnn
+parseOne = flip P.runParser $ fileOf exprAnn
+
+fileOf :: forall a. Parser a -> Parser a
+fileOf = C.between lexer.whiteSpace S.eof
+
+manyOf :: forall a. Parser a -> Parser (List a)
+manyOf = flip C.sepBy lexer.whiteSpace
 
 exprAnn :: Parser E.ExprAnn
 exprAnn = fix $ \p -> symbol <|> quoted p <|> listOf p

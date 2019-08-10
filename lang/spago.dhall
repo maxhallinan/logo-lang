@@ -11,13 +11,16 @@ You can edit this file as you like.
     , "effect"
     , "foldable-traversable"
     , "newtype"
+    , "nonempty"
     , "ordered-collections"
     , "parsing"
     , "psci-support"
     , "quickcheck"
     , "spec"
+    , "spec-quickcheck"
     , "strings"
     , "tuples"
+    , "unicode"
     ]
 , packages =
     ./packages.dhall
