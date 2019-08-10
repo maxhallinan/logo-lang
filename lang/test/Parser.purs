@@ -2,13 +2,12 @@ module Test.Parser (spec) where
 
 import Prelude
 
-import Control.Plus (empty)
-import Data.Array ((:), fromFoldable)
-import Data.Char.Unicode (toUpper)
+import Control.Lazy (fix)
+import Data.Array ((:))
+import Data.Char.Gen (genAlpha, genDigitChar, genUnicodeChar)
 import Data.Either (Either(..))
-import Data.Foldable (elem, foldl)
-import Data.NonEmpty ((:|), NonEmpty)
-import Data.List (List)
+import Data.Foldable (elem)
+import Data.NonEmpty ((:|), singleton)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect.Aff (Aff)
 import ExprAnn (Ann, Expr(..), ExprAnn(..), SFrm(..), SrcLoc )
@@ -17,14 +16,16 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
 import Test.Spec.QuickCheck (quickCheck)
 import Test.QuickCheck.Arbitrary (class Arbitrary)
-import Test.QuickCheck.Gen (Gen, arrayOf, elements, oneOf, suchThat)
+import Test.QuickCheck.Gen (Gen, arrayOf, elements, oneOf, suchThat, resize)
 
 spec :: Spec Unit
 spec = do
   describe "Parser" do
     describe "Parser.parseOne" do
-      describe "symbols" do
-         it "parses symbols" $ do quickCheck prop_parseStr_Sym 
+      describe "symbol" do
+         it "parses a symbol" $ do quickCheck prop_parseOne_Sym
+      describe "list" do
+         it "parses a list" $ do quickCheck prop_parseOne_Lst
       describe "special forms" do
         it "parses atom?" do
           let begin = srcLoc 1 1
@@ -87,8 +88,51 @@ parsesOneTo str expected =
     Left err -> fail $ show err
     Right actual -> actual `shouldEqual` expected
 
-prop_parseStr_Sym :: ArbSym -> Boolean
-prop_parseStr_Sym (ArbSym sym) =
+newtype ArbLst = ArbLst String
+derive instance eqArbLst :: Eq ArbLst
+
+instance arbitraryArbLst :: Arbitrary ArbLst where
+  arbitrary = ArbLst <$> genLst
+
+prop_parseOne_Lst :: ArbLst -> Boolean
+prop_parseOne_Lst (ArbLst lst) =
+  case parseOne lst of
+    Right (ExprAnn (Lst _) _) -> true
+    _ -> false
+
+genSexpr :: Gen String
+genSexpr = resize 2 $ (fix $ \p -> oneOf $ genAtom :| [inParens p])
+
+genLst :: Gen String
+genLst = inParens genSexpr
+
+genAtom :: Gen String
+genAtom = oneOf $ singleton genSym
+
+genLineComment :: Gen String
+genLineComment = do
+  content <- fromCharArray <$> arrayOf genUnicodeChar
+  pure $ ";" <> content <> "\n"
+
+tokenOf :: Gen String -> Gen String
+tokenOf gen = do
+  s1 <- genSpace
+  x <- gen
+  s2 <- genSpace
+  pure $ s1 <> x <> s2
+  where genSpace = oneOf $ genLineComment :| [genWhitespace]
+        genWhitespace = fromCharArray <$> arrayOf genWhitespaceChar
+        genWhitespaceChar = elements $ ' ' :| toCharArray "\t\n\r"
+
+inParens :: Gen String -> Gen String
+inParens gen = do
+  p1 <- tokenOf $ pure "("
+  x <- gen
+  p2 <- tokenOf $ pure ")"
+  pure $ p1 <> x <> p2
+
+prop_parseOne_Sym :: ArbSym -> Boolean
+prop_parseOne_Sym (ArbSym sym) =
   case parseOne sym of
     Right (ExprAnn expr _) -> expr == Sym sym
     _ -> false
@@ -97,39 +141,27 @@ newtype ArbSym = ArbSym String
 derive instance eqArbSym :: Eq ArbSym
 
 instance arbitraryArbSym :: Arbitrary ArbSym where
-  arbitrary = ArbSym <$> symbolGen
+  arbitrary = ArbSym <$> genSym
 
-symbolGen :: Gen String
-symbolGen = 
+genSym :: Gen String
+genSym =
   flip suchThat isNotSFrm $ do
-     i <- initial
-     sub <- arrayOf subsequent
-     pure $ fromCharArray (i : sub)
+     f <- genFirstChar
+     r <- arrayOf genRestChar
+     pure $ fromCharArray (f:r)
   where
-    initial :: Gen Char
-    initial = oneOf $ alpha :| [elements $ '!' :| toCharArray "$%&*/:<=>?~_^"]
+    genFirstChar :: Gen Char
+    genFirstChar = oneOf $ genAlpha :| [genFirstSpecialChar]
 
-    subsequent :: Gen Char
-    subsequent = oneOf $ initial :| [numeric, elements $ '.' :| toCharArray "+-"]
+    genFirstSpecialChar :: Gen Char
+    genFirstSpecialChar = elements $ '!' :| toCharArray "$%&*/:<=>?~_^"
+    
+    genRestChar :: Gen Char
+    genRestChar = oneOf $ genFirstChar :| [genDigitChar, genRestSpecialChar]
+    
+    genRestSpecialChar :: Gen Char
+    genRestSpecialChar = elements $ '.' :| toCharArray "+-"
 
 isNotSFrm :: String -> Boolean
 isNotSFrm x = not $ elem x sFrms
   where sFrms = ["::", "=", "==", "atom?", "first", "fn", "if", "quote", "rest"]
-
-numbers :: NonEmpty Array Char
-numbers =  '1' :| toCharArray "234567890"
-
-numeric :: Gen Char
-numeric = elements numbers
-
-letters :: NonEmpty Array Char
-letters = 'a' :| toCharArray "bcdefghijklmnopqrstuvwxyz"
-
-alpha :: Gen Char
-alpha = oneOf $ lowerAlpha :| [upperAlpha]
-
-lowerAlpha :: Gen Char
-lowerAlpha = elements letters
-
-upperAlpha :: Gen Char
-upperAlpha = elements $ map toUpper letters
