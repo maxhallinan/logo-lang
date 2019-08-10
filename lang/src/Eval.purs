@@ -88,16 +88,21 @@ evalOne :: ExprAnn -> Eval ExprAnn
 evalOne = eval
 
 eval :: ExprAnn -> Eval ExprAnn
-eval (ExprAnn expr ann) = throw NotImplemented ann
+eval (ExprAnn expr ann) = 
+  case expr of
+    (Sym name) ->
+      evalSym ann name
+    _ -> 
+      throw NotImplemented ann
 
-{-- evalSym :: Ann -> String -> Eval ExprAnn --}
-{-- evalSym ann name = do --}
-{--   env <- getEnv --}
-{--   case M.lookup name env of --}
-{--     Just expr -> --}
-{--       pure expr --}
-{--     Nothing -> --}
-{--       throw (UnknownVar name) ann --}
+evalSym :: Ann -> String -> Eval ExprAnn
+evalSym ann name = do
+  env <- getEnv
+  case M.lookup name env of
+    Just expr ->
+      pure expr
+    Nothing ->
+      throw (UnknownVar name) ann
 
 {-- evalSFrm :: E.SFrm -> E.Ann -> Args -> Eval E.Expr --}
 {-- evalSFrm _ ann Nil = throw NumArgs ann --}
