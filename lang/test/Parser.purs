@@ -8,6 +8,7 @@ import Data.Char.Gen (genAlpha, genDigitChar, genUnicodeChar)
 import Data.Either (Either(..))
 import Data.Foldable (elem)
 import Data.NonEmpty ((:|), singleton)
+import Data.String (length)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect.Aff (Aff)
 import ExprAnn (Ann, Expr(..), ExprAnn(..), SFrm(..), SrcLoc )
@@ -23,55 +24,30 @@ spec = do
   describe "Parser" do
     describe "Parser.parseOne" do
       describe "symbol" do
-         it "parses a symbol" $ do quickCheck prop_parseOne_Sym
+        it "parses a symbol" $ do
+          quickCheck prop_parseOne_Sym
       describe "list" do
-         it "parses a list" $ do quickCheck prop_parseOne_Lst
+        it "parses a list" $ do
+          quickCheck prop_parseOne_Lst
       describe "special forms" do
         it "parses atom?" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 6
-          let expr = SFrm IsAtm
-          "atom?" `parsesOneTo` exprAnn expr begin end
+          "atom?" `parsesOneSFrmTo` (SFrm IsAtm)
         it "parses first" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 6
-          let expr = SFrm First
-          "first" `parsesOneTo` exprAnn expr begin end
+          "first" `parsesOneSFrmTo` (SFrm First)
         it "parses rest" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 5
-          let expr = SFrm Rest
-          "rest" `parsesOneTo` exprAnn expr begin end
+          "rest" `parsesOneSFrmTo` (SFrm Rest)
         it "parses ::" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 3
-          let expr = SFrm Cons
-          "::" `parsesOneTo` (exprAnn expr begin end)
+          "::" `parsesOneSFrmTo` (SFrm Cons)
         it "parses =" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 2
-          let expr = SFrm Def
-          "=" `parsesOneTo` exprAnn expr begin end
+          "=" `parsesOneSFrmTo` (SFrm Def)
         it "parses ==" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 3
-          let expr = SFrm IsEq
-          "==" `parsesOneTo` exprAnn expr begin end
+          "==" `parsesOneSFrmTo` (SFrm IsEq)
         it "parses fn" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 3
-          let expr = SFrm Lambda
-          "fn" `parsesOneTo` exprAnn expr begin end
+          "fn" `parsesOneSFrmTo` (SFrm Lambda)
         it "parses quote" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 6
-          let expr = SFrm Quote
-          "quote" `parsesOneTo` exprAnn expr begin end
+          "quote" `parsesOneSFrmTo` (SFrm Quote)
         it "parses if" do
-          let begin = srcLoc 1 1
-          let end = srcLoc 1 3
-          let expr = SFrm If
-          "if" `parsesOneTo` exprAnn expr begin end
+          "if" `parsesOneSFrmTo` (SFrm If)
 
 exprAnn :: Expr -> SrcLoc -> SrcLoc -> ExprAnn
 exprAnn expr begin end = ExprAnn expr $ ann begin end
@@ -82,8 +58,18 @@ ann begin end = { srcSpan: { begin: begin, end: end } }
 srcLoc :: Int -> Int -> SrcLoc
 srcLoc line column = { line: line, column: column }
 
-parsesOneTo :: String -> ExprAnn -> Aff Unit
-parsesOneTo str expected =
+parsesOneSFrmTo :: String -> Expr -> Aff Unit
+parsesOneSFrmTo = parsesSFrm parseOneSucceedsWith
+
+parsesSFrm :: (String -> ExprAnn -> Aff Unit) -> String -> Expr -> Aff Unit
+parsesSFrm succeedsWith str expr =
+  str `succeedsWith` exprAnn expr begin end
+  where
+    begin = srcLoc 1 1
+    end = srcLoc 1 $ (length str + 1)
+
+parseOneSucceedsWith :: String -> ExprAnn -> Aff Unit
+parseOneSucceedsWith str expected =
   case parseOne str of
     Left err -> fail $ show err
     Right actual -> actual `shouldEqual` expected
@@ -155,10 +141,10 @@ genSym =
 
     genFirstSpecialChar :: Gen Char
     genFirstSpecialChar = elements $ '!' :| toCharArray "$%&*/:<=>?~_^"
-    
+
     genRestChar :: Gen Char
     genRestChar = oneOf $ genFirstChar :| [genDigitChar, genRestSpecialChar]
-    
+
     genRestSpecialChar :: Gen Char
     genRestSpecialChar = elements $ '.' :| toCharArray "+-"
 
