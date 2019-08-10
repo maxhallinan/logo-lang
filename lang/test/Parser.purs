@@ -7,12 +7,13 @@ import Data.Array ((:))
 import Data.Char.Gen (genAlpha, genDigitChar, genUnicodeChar)
 import Data.Either (Either(..))
 import Data.Foldable (elem)
+import Data.List as L
 import Data.NonEmpty ((:|), singleton)
 import Data.String (length)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect.Aff (Aff)
 import ExprAnn (Ann, Expr(..), ExprAnn(..), SFrm(..), SrcLoc )
-import Parser (parseOne)
+import Parser (parseMany, parseOne)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
 import Test.Spec.QuickCheck (quickCheck)
@@ -22,6 +23,32 @@ import Test.QuickCheck.Gen (Gen, arrayOf, elements, oneOf, suchThat, resize)
 spec :: Spec Unit
 spec = do
   describe "Parser" do
+    describe "Parser.parseMany" do
+      describe "symbol" do
+        it "parses a symbol" $ do
+          quickCheck prop_parseMany_Sym
+      describe "list" do
+        it "parses a list" $ do
+          quickCheck prop_parseMany_Lst
+      describe "special forms" do
+        it "parses atom?" do
+          "atom?" `parsesManySFrmTo` (SFrm IsAtm)
+        it "parses first" do
+          "first" `parsesManySFrmTo` (SFrm First)
+        it "parses rest" do
+          "rest" `parsesManySFrmTo` (SFrm Rest)
+        it "parses ::" do
+          "::" `parsesManySFrmTo` (SFrm Cons)
+        it "parses =" do
+          "=" `parsesManySFrmTo` (SFrm Def)
+        it "parses ==" do
+          "==" `parsesManySFrmTo` (SFrm IsEq)
+        it "parses fn" do
+          "fn" `parsesManySFrmTo` (SFrm Lambda)
+        it "parses quote" do
+          "quote" `parsesManySFrmTo` (SFrm Quote)
+        it "parses if" do
+          "if" `parsesManySFrmTo` (SFrm If)
     describe "Parser.parseOne" do
       describe "symbol" do
         it "parses a symbol" $ do
@@ -61,6 +88,9 @@ srcLoc line column = { line: line, column: column }
 parsesOneSFrmTo :: String -> Expr -> Aff Unit
 parsesOneSFrmTo = parsesSFrm parseOneSucceedsWith
 
+parsesManySFrmTo :: String -> Expr -> Aff Unit
+parsesManySFrmTo = parsesSFrm parseManySucceedsWith
+
 parsesSFrm :: (String -> ExprAnn -> Aff Unit) -> String -> Expr -> Aff Unit
 parsesSFrm succeedsWith str expr =
   str `succeedsWith` exprAnn expr begin end
@@ -74,6 +104,12 @@ parseOneSucceedsWith str expected =
     Left err -> fail $ show err
     Right actual -> actual `shouldEqual` expected
 
+parseManySucceedsWith :: String -> ExprAnn -> Aff Unit
+parseManySucceedsWith str expected =
+  case parseMany str of
+    Left err -> fail $ show err
+    Right actual -> actual `shouldEqual` (pure expected)
+
 newtype ArbLst = ArbLst String
 derive instance eqArbLst :: Eq ArbLst
 
@@ -84,6 +120,12 @@ prop_parseOne_Lst :: ArbLst -> Boolean
 prop_parseOne_Lst (ArbLst lst) =
   case parseOne lst of
     Right (ExprAnn (Lst _) _) -> true
+    _ -> false
+
+prop_parseMany_Lst :: ArbLst -> Boolean
+prop_parseMany_Lst (ArbLst lst) =
+  case parseMany lst of
+    Right (L.Cons (ExprAnn (Lst _) _) _) -> true
     _ -> false
 
 genSexpr :: Gen String
@@ -121,6 +163,12 @@ prop_parseOne_Sym :: ArbSym -> Boolean
 prop_parseOne_Sym (ArbSym sym) =
   case parseOne sym of
     Right (ExprAnn expr _) -> expr == Sym sym
+    _ -> false
+
+prop_parseMany_Sym :: ArbSym -> Boolean
+prop_parseMany_Sym (ArbSym sym) =
+  case parseMany sym of
+    Right (L.Cons (ExprAnn expr _) _) -> expr == Sym sym
     _ -> false
 
 newtype ArbSym = ArbSym String
