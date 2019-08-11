@@ -121,10 +121,10 @@ evalSFrm ann First args = evalFirst ann args
 evalSFrm ann If args = evalIf ann args
 evalSFrm ann IsAtm args = evalIsAtm ann args
 evalSFrm ann IsEq args = evalIsEq ann args
-evalSFrm ann Quote args = evalQuote ann args
 evalSFrm ann Lambda args = evalLambda ann args
+evalSFrm ann Quote args = evalQuote ann args
+evalSFrm ann Rest args = evalRest ann args
 evalSFrm ann _ _ = throw ann NotImplemented
-{-- evalSFrm E.Rest ann args = evalRest ann args --}
 
 evalCons :: Ann -> Args -> Eval ExprAnn
 evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
@@ -205,20 +205,20 @@ evalLambda ann (L.Cons params (L.Cons body L.Nil)) = do
       throw ann WrongTipe
 evalLambda ann _ = throw ann NumArgs
 
-{-- evalRest :: E.Ann -> Args -> Eval E.Expr --}
-{-- evalRest ann (Cons (Attr attr) Nil) = do --}
-{--   arg <- attr.attribute --}
-{--   case E.unExpr arg of --}
-{--     E.Lst Nil -> --}
-{--       pure arg --}
-{--     E.Lst (Cons _ t) -> --}
-{--       pure $ E.mkExpr (E.Lst t) ann --}
-{--     _ -> throw WrongTipe ann --}
-{-- evalRest ann _ = throw NumArgs ann --}
-
 evalQuote :: Ann -> Args -> Eval ExprAnn
 evalQuote ann (L.Cons expr L.Nil) = pure $ expr
 evalQuote ann _ = throw ann NumArgs
+
+evalRest :: Ann -> Args -> Eval ExprAnn
+evalRest ann (L.Cons e L.Nil) = do
+  ExprAnn xs _ <- eval e
+  case xs of
+    Lst L.Nil ->
+      pure $ ExprAnn (Lst L.Nil) ann
+    Lst (L.Cons _ t) ->
+      pure $ ExprAnn (Lst t) ann
+    _ -> throw ann WrongTipe
+evalRest ann _ = throw ann NumArgs
 
 {-- evalLst :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalLst ann (Cons (Attr x) xs) = do --}
