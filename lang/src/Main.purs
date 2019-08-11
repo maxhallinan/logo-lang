@@ -35,7 +35,3 @@ run parse eval program = p program >>= e
   where
     p = lmap ParseErr <<< parse
     e = lmap EvalErr <<< T.fst <<< extract <<< eval
-
-main :: Effect Unit
-main = do
-  log "🍝"

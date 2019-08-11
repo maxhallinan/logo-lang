@@ -55,7 +55,24 @@ data ErrName
   | NotImplemented
 
 instance showEvalErr :: Show EvalErr where
-  show _ = "EvalErr"
+  show (EvalErr errName _) =
+    case errName of
+      NumArgs ->
+        "NumArgs"
+      WrongTipe ->
+        "WrongTipe"
+      LstLength ->
+        "LstLength"
+      UnknownVar name ->
+        "UnknownVar " <> name
+      NotFn ->
+        "NotFn"
+      Unknown ->
+        "Unknown"
+      NotPair ->
+        "NotPair"
+      NotImplemented ->
+        "NotImplemented"
 
 throw :: forall m e a. Monad m => Ann -> ErrName -> EvalT m e a
 throw ann name = throwError $ EvalErr name ann.srcSpan
