@@ -140,8 +140,7 @@ evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
 evalCons ann _ = throw ann NumArgs
 
 evalDef :: Ann -> Args -> Eval ExprAnn
-evalDef ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
-  sym <- eval e1
+evalDef ann (L.Cons sym (L.Cons e2 L.Nil)) = do
   val <- eval e2
   case sym of
     ExprAnn (Sym name) _ -> do
@@ -237,7 +236,7 @@ applyLambda :: Ann -> L.List ExprAnn -> L.List ExprAnn -> ExprAnn -> Eval ExprAn
 applyLambda ann params args body = do
   env <- bindArgs ann params args
   let evalState = EvalState { env: env }
-  EvalT $ mapExceptT (withStateT $ const evalState) (pure body)
+  EvalT $ mapExceptT (withStateT $ const evalState) (unwrap $ eval body)
 
 bindArgs :: Ann -> L.List ExprAnn -> L.List ExprAnn -> Eval Env
 bindArgs ann params args = do
