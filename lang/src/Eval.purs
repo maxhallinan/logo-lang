@@ -122,9 +122,9 @@ evalSFrm ann If args = evalIf ann args
 evalSFrm ann IsAtm args = evalIsAtm ann args
 evalSFrm ann IsEq args = evalIsEq ann args
 evalSFrm ann Quote args = evalQuote ann args
+evalSFrm ann Lambda args = evalLambda ann args
 evalSFrm ann _ _ = throw ann NotImplemented
 {-- evalSFrm E.Rest ann args = evalRest ann args --}
-{-- evalSFrm E.Lambda ann args = evalLambda ann args --}
 
 evalCons :: Ann -> Args -> Eval ExprAnn
 evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
@@ -195,6 +195,16 @@ evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
       pure $ ExprAnn (Lst L.Nil) ann
 evalIsEq ann _ = throw ann NumArgs
 
+evalLambda :: Ann -> Args -> Eval ExprAnn
+evalLambda ann (L.Cons params (L.Cons body L.Nil)) = do
+  case params of
+    ExprAnn (Lst params') _ -> do
+      env <- getEnv
+      pure $ ExprAnn (Fn env params' body) ann
+    _ ->
+      throw ann WrongTipe
+evalLambda ann _ = throw ann NumArgs
+
 {-- evalRest :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalRest ann (Cons (Attr attr) Nil) = do --}
 {--   arg <- attr.attribute --}
@@ -205,18 +215,6 @@ evalIsEq ann _ = throw ann NumArgs
 {--       pure $ E.mkExpr (E.Lst t) ann --}
 {--     _ -> throw WrongTipe ann --}
 {-- evalRest ann _ = throw NumArgs ann --}
-
-{-- evalLambda :: E.Ann -> Args -> Eval E.Expr --}
-{-- evalLambda ann (Cons params (Cons body Nil)) = do --}
-{--   let params' = unfoldAttr params --}
-{--   let body' = unfoldAttr body --}
-{--   case E.unExpr params' of --}
-{--     E.Lst p -> do --}
-{--       env <- getEnv --}
-{--       pure $ E.mkExpr (E.Fn env p body') ann --}
-{--     _ -> --}
-{--       throw WrongTipe ann --}
-{-- evalLambda ann _ = throw NumArgs ann --}
 
 evalQuote :: Ann -> Args -> Eval ExprAnn
 evalQuote ann (L.Cons expr L.Nil) = pure $ expr
