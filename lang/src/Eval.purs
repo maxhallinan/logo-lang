@@ -120,10 +120,10 @@ evalSFrm ann Def args = evalDef ann args
 evalSFrm ann First args = evalFirst ann args
 evalSFrm ann If args = evalIf ann args
 evalSFrm ann IsAtm args = evalIsAtm ann args
+evalSFrm ann IsEq args = evalIsEq ann args
 evalSFrm ann Quote args = evalQuote ann args
 evalSFrm ann _ _ = throw ann NotImplemented
 {-- evalSFrm E.Rest ann args = evalRest ann args --}
-{-- evalSFrm E.IsEq ann args = evalIsEq ann args --}
 {-- evalSFrm E.Lambda ann args = evalLambda ann args --}
 
 evalCons :: Ann -> Args -> Eval ExprAnn
@@ -180,6 +180,21 @@ evalIsAtm ann (L.Cons e L.Nil) = do
       pure $ ExprAnn (Lst L.Nil) ann
 evalIsAtm ann _ = throw ann NumArgs
 
+evalIsEq :: Ann -> Args -> Eval ExprAnn
+evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
+  ExprAnn x _ <- eval e1
+  ExprAnn y _ <- eval e2
+  case Tuple x y of
+    Tuple (Sym name1) (Sym name2) ->
+      if name1 == name2
+      then pure $ ExprAnn (Sym "true") ann
+      else pure $ ExprAnn (Lst L.Nil) ann
+    Tuple (Lst L.Nil) (Lst L.Nil) ->
+      pure $ ExprAnn (Sym "true") ann
+    _ ->
+      pure $ ExprAnn (Lst L.Nil) ann
+evalIsEq ann _ = throw ann NumArgs
+
 {-- evalRest :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalRest ann (Cons (Attr attr) Nil) = do --}
 {--   arg <- attr.attribute --}
@@ -190,21 +205,6 @@ evalIsAtm ann _ = throw ann NumArgs
 {--       pure $ E.mkExpr (E.Lst t) ann --}
 {--     _ -> throw WrongTipe ann --}
 {-- evalRest ann _ = throw NumArgs ann --}
-
-{-- evalIsEq :: E.Ann -> Args -> Eval E.Expr --}
-{-- evalIsEq ann (Cons (Attr e1) (Cons (Attr e2) Nil)) = do --}
-{--   e1' <- e1.attribute --}
-{--   e2' <- e2.attribute --}
-{--   case Tuple (E.unExpr e1') (E.unExpr e2') of --}
-{--     Tuple (E.Sym name1) (E.Sym name2) -> --}
-{--       if name1 == name2 --}
-{--       then pure $ E.mkExpr (E.Sym "t") ann --}
-{--       else pure $ E.mkExpr (E.Lst Nil) ann --}
-{--     Tuple (E.Lst Nil) (E.Lst Nil) -> --}
-{--       pure $ E.mkExpr (E.Sym "t") ann --}
-{--     _ -> --}
-{--       pure $ E.mkExpr (E.Lst Nil) ann --}
-{-- evalIsEq ann _ = throw NumArgs ann --}
 
 {-- evalLambda :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalLambda ann (Cons params (Cons body Nil)) = do --}
