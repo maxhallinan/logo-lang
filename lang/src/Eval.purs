@@ -118,14 +118,13 @@ evalSFrm ann _ L.Nil = throw ann NumArgs
 evalSFrm ann Cons args = evalCons ann args
 evalSFrm ann Def args = evalDef ann args
 evalSFrm ann First args = evalFirst ann args
+evalSFrm ann If args = evalIf ann args
 evalSFrm ann Quote args = evalQuote ann args
 evalSFrm ann _ _ = throw ann NotImplemented
 {-- evalSFrm E.Rest ann args = evalRest ann args --}
-{-- evalSFrm E.If ann args = evalIf ann args --}
 {-- evalSFrm E.IsAtm ann args = evalIsAtm ann args --}
 {-- evalSFrm E.IsEq ann args = evalIsEq ann args --}
 {-- evalSFrm E.Lambda ann args = evalLambda ann args --}
-
 
 evalCons :: Ann -> Args -> Eval ExprAnn
 evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
@@ -159,6 +158,16 @@ evalFirst ann (L.Cons e L.Nil) = do
     _ -> throw ann WrongTipe
 evalFirst ann _ = throw ann NumArgs
 
+evalIf :: Ann -> Args -> Eval ExprAnn
+evalIf ann (L.Cons p (L.Cons e1 (L.Cons e2 L.Nil))) = do
+  ExprAnn p' _ <- eval p
+  case p' of
+    Lst L.Nil ->
+      eval e2
+    _ ->
+      eval e1
+evalIf ann _ = throw ann NumArgs
+
 {-- evalRest :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalRest ann (Cons (Attr attr) Nil) = do --}
 {--   arg <- attr.attribute --}
@@ -169,14 +178,6 @@ evalFirst ann _ = throw ann NumArgs
 {--       pure $ E.mkExpr (E.Lst t) ann --}
 {--     _ -> throw WrongTipe ann --}
 {-- evalRest ann _ = throw NumArgs ann --}
-
-{-- evalIf :: E.Ann -> Args -> Eval E.Expr --}
-{-- evalIf ann (Cons (Attr p) (Cons (Attr e1) (Cons (Attr e2) _))) = do --}
-{--   p' <- p.attribute --}
-{--   case E.unExpr p' of --}
-{--     E.Lst Nil -> e2.attribute --}
-{--     _ -> e1.attribute --}
-{-- evalIf ann _ = throw NumArgs ann --}
 
 {-- evalIsAtm :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalIsAtm ann (Cons (Attr h) Nil) = do --}
