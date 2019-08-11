@@ -63,8 +63,13 @@ throw ann name = throwError $ EvalErr name ann.srcSpan
 newtype EvalState env = EvalState { env :: env }
 derive instance evalStateNewtype :: Newtype (EvalState a) _
 
-getEnv :: forall m e a. Monad m => EvalT m Env Env
+getEnv :: forall m e. Monad m => EvalT m e e
 getEnv = S.get >>= (unwrap >>> _.env >>> pure)
+
+updateEnv :: forall m a. Monad m => String -> ExprAnn -> EvalT m Env Unit
+updateEnv key val = do
+  evalState <- unwrap <$> S.get
+  S.put $ EvalState (evalState { env = M.insert key val evalState.env })
 
 runMany :: Env -> L.List ExprAnn -> Identity (Tuple (Either EvalErr (L.List ExprAnn)) Env)
 runMany env exprs = run env $ evalMany exprs
@@ -111,8 +116,16 @@ type Args = L.List ExprAnn
 evalSFrm :: Ann -> SFrm -> Args -> Eval ExprAnn
 evalSFrm ann _ L.Nil = throw ann NumArgs
 evalSFrm ann Cons args = evalCons ann args
+evalSFrm ann Def args = evalDef ann args
+evalSFrm ann First args = evalFirst ann args
 evalSFrm ann Quote args = evalQuote ann args
 evalSFrm ann _ _ = throw ann NotImplemented
+{-- evalSFrm E.Rest ann args = evalRest ann args --}
+{-- evalSFrm E.If ann args = evalIf ann args --}
+{-- evalSFrm E.IsAtm ann args = evalIsAtm ann args --}
+{-- evalSFrm E.IsEq ann args = evalIsEq ann args --}
+{-- evalSFrm E.Lambda ann args = evalLambda ann args --}
+
 
 evalCons :: Ann -> Args -> Eval ExprAnn
 evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
@@ -125,22 +138,26 @@ evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
       throw ann WrongTipe
 evalCons ann _ = throw ann NumArgs
 
-{-- evalSFrm E.First ann args = evalFirst ann args --}
-{-- evalSFrm E.Rest ann args = evalRest ann args --}
-{-- evalSFrm E.If ann args = evalIf ann args --}
-{-- evalSFrm E.Def ann args = evalDef ann args --}
-{-- evalSFrm E.IsAtm ann args = evalIsAtm ann args --}
-{-- evalSFrm E.IsEq ann args = evalIsEq ann args --}
-{-- evalSFrm E.Lambda ann args = evalLambda ann args --}
+evalDef :: Ann -> Args -> Eval ExprAnn
+evalDef ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
+  sym <- eval e1
+  val <- eval e2
+  case sym of
+    ExprAnn (Sym name) _ -> do
+      _ <- updateEnv name val
+      pure val
+    _ ->
+      throw ann WrongTipe
+evalDef ann _ = throw ann NumArgs
 
-{-- evalFirst :: forall a. E.Ann -> Args -> Eval E.Expr --}
-{-- evalFirst ann (Cons (Attr attr) Nil) = do --}
-{--   arg <- attr.attribute --}
-{--   case E.unExpr arg of --}
-{--     E.Lst Nil -> throw LstLength ann --}
-{--     E.Lst (Cons expr _) -> pure expr --}
-{--     _ -> throw WrongTipe ann --}
-{-- evalFirst ann _ = throw NumArgs ann --}
+evalFirst :: forall a. Ann -> Args -> Eval ExprAnn
+evalFirst ann (L.Cons e L.Nil) = do
+  ExprAnn xs _ <- eval e
+  case xs of
+    Lst L.Nil -> throw ann LstLength
+    Lst (L.Cons h _) -> pure h
+    _ -> throw ann WrongTipe
+evalFirst ann _ = throw ann NumArgs
 
 {-- evalRest :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalRest ann (Cons (Attr attr) Nil) = do --}
@@ -160,18 +177,6 @@ evalCons ann _ = throw ann NumArgs
 {--     E.Lst Nil -> e2.attribute --}
 {--     _ -> e1.attribute --}
 {-- evalIf ann _ = throw NumArgs ann --}
-
-{-- evalDef :: E.Ann -> Args -> Eval E.Expr --}
-{-- evalDef ann (Cons (Attr sym) (Cons (Attr expr) Nil)) = do --}
-{--   sym' <- sym.attribute --}
-{--   case E.unExpr sym' of --}
-{--     E.Sym name -> do --}
-{--       val <- expr.attribute --}
-{--       _ <- updateEnv name val --}
-{--       pure val --}
-{--     _ -> --}
-{--       throw WrongTipe ann --}
-{-- evalDef ann _ = throw NumArgs ann --}
 
 {-- evalIsAtm :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalIsAtm ann (Cons (Attr h) Nil) = do --}
@@ -215,11 +220,6 @@ evalCons ann _ = throw ann NumArgs
 evalQuote :: Ann -> Args -> Eval ExprAnn
 evalQuote ann (L.Cons expr L.Nil) = pure $ expr
 evalQuote ann _ = throw ann NumArgs
-
-{-- updateEnv :: String -> E.Expr -> Eval Unit --}
-{-- updateEnv key val = do --}
-{--   EvalState evalState <- S.get --}
-{--   S.put $ EvalState (evalState { env = M.insert key val evalState.env }) --}
 
 {-- evalLst :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalLst ann (Cons (Attr x) xs) = do --}
