@@ -99,6 +99,8 @@ eval (ExprAnn expr ann) =
       evalSym ann name
     (Lst (L.Cons (ExprAnn (SFrm sfrm) _) args)) ->
       evalSFrm ann sfrm args
+    (Lst xs) ->
+      evalLst ann xs
     _ ->
       throw ann NotImplemented
 
@@ -220,40 +222,38 @@ evalRest ann (L.Cons e L.Nil) = do
     _ -> throw ann WrongTipe
 evalRest ann _ = throw ann NumArgs
 
-{-- evalLst :: E.Ann -> Args -> Eval E.Expr --}
-{-- evalLst ann (Cons (Attr x) xs) = do --}
-{--   fn <- x.attribute --}
-{--   args <- traverse (_.attribute <<< unwrap) xs --}
-{--   case E.unExpr fn of --}
-{--     E.Fn localEnv params body -> do --}
-{--       expr <- applyLambda ann params args body --}
-{--       let Attr attr = eval expr --}
-{--       attr.attribute --}
-{--     _ -> --}
-{--       throw NotFn ann --}
-{-- evalLst ann Nil = throw NumArgs ann --}
+evalLst :: Ann -> Args -> Eval ExprAnn
+evalLst ann (L.Cons x xs) = do
+  ExprAnn fn _ <- eval x
+  args <- traverse eval xs
+  case fn of
+    Fn localEnv params body -> do
+      applyLambda ann params args body
+    _ ->
+      throw ann NotFn
+evalLst ann L.Nil = throw ann NumArgs
 
-{-- applyLambda :: E.Ann -> List E.Expr -> List E.Expr -> E.Expr -> Eval E.Expr --}
-{-- applyLambda ann params args body = do --}
-{--   env <- bindArgs ann params args --}
-{--   let evalState = EvalState { env: env } --}
-{--   EvalT $ mapExceptT (withStateT $ const evalState) (pure body) --}
+applyLambda :: Ann -> L.List ExprAnn -> L.List ExprAnn -> ExprAnn -> Eval ExprAnn
+applyLambda ann params args body = do
+  env <- bindArgs ann params args
+  let evalState = EvalState { env: env }
+  EvalT $ mapExceptT (withStateT $ const evalState) (pure body)
 
-{-- bindArgs :: E.Ann -> List E.Expr -> List E.Expr -> Eval (E.Env E.Expr) --}
-{-- bindArgs ann params args = do --}
-{--   env <- getEnv --}
-{--   bindings <- sequence (zipWith toBinding params args) --}
-{--   pure $ M.fromFoldable bindings <> env --}
-{--   where --}
-{--     toBinding :: E.Expr -> E.Expr -> Eval (Tuple String E.Expr) --}
-{--     toBinding param arg = do --}
-{--       paramName <- toParamName param --}
-{--       pure $ Tuple paramName arg --}
+bindArgs :: Ann -> L.List ExprAnn -> L.List ExprAnn -> Eval Env
+bindArgs ann params args = do
+  env <- getEnv
+  bindings <- sequence (L.zipWith toBinding params args)
+  pure $ M.fromFoldable bindings <> env
+  where
+    toBinding :: ExprAnn -> ExprAnn -> Eval (Tuple String ExprAnn)
+    toBinding param arg = do
+      paramName <- toParamName param
+      pure $ Tuple paramName arg
 
-{--     toParamName :: E.Expr -> Eval String --}
-{--     toParamName param = --}
-{--       case E.unExpr' param of --}
-{--         E.ExprAnnF (E.Sym name) _ -> --}
-{--           pure name --}
-{--         E.ExprAnnF _ ann -> --}
-{--           throw Unknown ann --}
+    toParamName :: ExprAnn -> Eval String
+    toParamName (ExprAnn param _) =
+      case param of
+        Sym name ->
+          pure name
+        _ ->
+          throw ann Unknown
