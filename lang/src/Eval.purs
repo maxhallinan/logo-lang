@@ -119,10 +119,10 @@ evalSFrm ann Cons args = evalCons ann args
 evalSFrm ann Def args = evalDef ann args
 evalSFrm ann First args = evalFirst ann args
 evalSFrm ann If args = evalIf ann args
+evalSFrm ann IsAtm args = evalIsAtm ann args
 evalSFrm ann Quote args = evalQuote ann args
 evalSFrm ann _ _ = throw ann NotImplemented
 {-- evalSFrm E.Rest ann args = evalRest ann args --}
-{-- evalSFrm E.IsAtm ann args = evalIsAtm ann args --}
 {-- evalSFrm E.IsEq ann args = evalIsEq ann args --}
 {-- evalSFrm E.Lambda ann args = evalLambda ann args --}
 
@@ -168,6 +168,18 @@ evalIf ann (L.Cons p (L.Cons e1 (L.Cons e2 L.Nil))) = do
       eval e1
 evalIf ann _ = throw ann NumArgs
 
+evalIsAtm :: Ann -> Args -> Eval ExprAnn
+evalIsAtm ann (L.Cons e L.Nil) = do
+  ExprAnn x _ <- eval e
+  case x of
+    Sym _ ->
+      pure $ ExprAnn (Sym "true") ann
+    Lst L.Nil ->
+      pure $ ExprAnn (Sym "true") ann
+    _ ->
+      pure $ ExprAnn (Lst L.Nil) ann
+evalIsAtm ann _ = throw ann NumArgs
+
 {-- evalRest :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalRest ann (Cons (Attr attr) Nil) = do --}
 {--   arg <- attr.attribute --}
@@ -178,18 +190,6 @@ evalIf ann _ = throw ann NumArgs
 {--       pure $ E.mkExpr (E.Lst t) ann --}
 {--     _ -> throw WrongTipe ann --}
 {-- evalRest ann _ = throw NumArgs ann --}
-
-{-- evalIsAtm :: E.Ann -> Args -> Eval E.Expr --}
-{-- evalIsAtm ann (Cons (Attr h) Nil) = do --}
-{--   h' <- h.attribute --}
-{--   case E.unExpr h' of --}
-{--     E.Sym _ -> --}
-{--       pure $ E.mkExpr (E.Sym "t") ann --}
-{--     E.Lst Nil -> --}
-{--       pure $ E.mkExpr (E.Sym "t") ann --}
-{--     _ -> --}
-{--       pure $ E.mkExpr (E.Lst Nil) ann --}
-{-- evalIsAtm ann _ = throw NumArgs ann --}
 
 {-- evalIsEq :: E.Ann -> Args -> Eval E.Expr --}
 {-- evalIsEq ann (Cons (Attr e1) (Cons (Attr e2) Nil)) = do --}
