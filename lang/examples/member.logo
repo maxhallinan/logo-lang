@@ -1,0 +1,13 @@
+(= null?
+  (fn (xs)
+    (== xs (quote ()))))
+
+(= member?
+  (fn (x xs)
+    (if (null? xs)
+      (quote t)
+      (if (== x (first xs))
+        (quote t)
+        (member? x (rest xs))))))
+
+(member? (quote c) (quote (a b c)))

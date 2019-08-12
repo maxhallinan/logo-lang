@@ -18,6 +18,10 @@ data RunErr
   = ParseErr P.ParseError
   | EvalErr Eval.EvalErr
 
+instance showRunErr :: Show RunErr where
+  show (ParseErr parseErr) = show parseErr
+  show (EvalErr evalErr) = show evalErr
+
 runOne :: String -> Either RunErr ExprAnn.ExprAnn
 runOne = run Parser.parseOne (Eval.runOne mempty)
 

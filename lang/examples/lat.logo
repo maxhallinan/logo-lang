@@ -1,0 +1,13 @@
+(= null?
+  (fn (xs)
+    (== xs (quote ()))))
+
+(= lat?
+  (fn (xs)
+    (if (null? xs)
+      (quote t)
+      (if (atom? (first xs))
+        (lat? (rest xs))
+        (quote ())))))
+
+(lat? (quote (a b c)))
