@@ -21,8 +21,8 @@ main = launchAff_ do
   files <- readFiles "examples"
   evaled <- evalFiles files
   spec <- runTests evaled
-  runSpec [consoleReporter] $ toUnit spec 
-  where 
+  runSpec [consoleReporter] $ toUnit spec
+  where
     evalFiles = traverse evalFile
     runTests = map sequence <<< traverse testFile
     -- `toUnit` is required because `spec` is `Spec (Array Unit)` and the second argument to `runSpec` is `Spec Unit`.
@@ -50,10 +50,12 @@ goldenVsString testName goldenFilePath str = do
 testFile
   :: { path :: Path.FilePath, result :: String }
   -> Aff (Spec Unit)
-testFile { path, result } = goldenVsString path goldenPath result
-  where goldenPath = Path.concat [ "golden-files"
-                                 , Path.basename path <> ".golden"
-                                 ]
+testFile { path, result } = goldenVsString testName goldenPath result
+  where
+    testName = path <> " - " <> goldenPath
+    goldenPath = Path.concat [ "golden-files"
+                             , Path.basename path <> ".golden"
+                             ]
 
 evalFile
   :: { file :: String, path :: Path.FilePath }

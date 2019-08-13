@@ -1,0 +1,3 @@
+((fn (x) x) 'foo)
+((fn (xs) (first xs)) '(x y z))
+((fn (xs) (first xs)) (rest '(x y z)))

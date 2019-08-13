@@ -1,0 +1,3 @@
+(= id (fn (x) x))
+(= y 'foo)
+(id y)

@@ -1,0 +1,13 @@
+; literal truthy/falsey values in predicate position
+(if 'true 'foo 'bar)
+(if '(true) 'foo 'bar)
+(if '() 'foo 'bar)
+
+; expression in predicate position
+(if (atom? 'baz) 'foo 'bar)
+
+; expression in consequent position
+(if (atom? 'baz) (:: 'x '(y z)) 'bar)
+
+; expression in alternate position
+(if (atom? '(baz)) 'foo (:: 'x '(y z)))

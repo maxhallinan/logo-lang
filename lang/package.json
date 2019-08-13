@@ -1,0 +1,12 @@
+{
+  "name": "logo-lang",
+  "version": "0.1.0",
+  "scripts": {
+    "test": "spago test --main Test.Main; spago test --main Test.Golden"
+  },
+  "author": {
+    "name": "Max Hallinan",
+    "email": "maxhallinan@riseup.net",
+    "url": "www.maxhallinan.com"
+  }
+}
