@@ -63,7 +63,7 @@ evalFile
 evalFile { file, path } = pure $ { path: path, result: run file }
   where showErr = show
         showRes = intercalate "\n" <<< map show
-        run = either showErr showRes <<< Main.runMany
+        run = either showErr showRes <<< _.result <<< Main.runMany mempty
 
 type DirName = String
 

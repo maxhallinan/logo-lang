@@ -3,6 +3,7 @@ module Eval
   , Eval
   , EvalErr(..)
   , EvalT
+  , ResultWithEnv
   , runMany
   , runOne
   ) where
@@ -88,20 +89,22 @@ updateEnv key val = do
   evalState <- unwrap <$> S.get
   S.put $ EvalState (evalState { env = M.insert key val evalState.env })
 
-runMany :: Env -> L.List ExprAnn -> Identity (Tuple (Either EvalErr (L.List ExprAnn)) Env)
+type ResultWithEnv a = { env :: Env, result :: Either EvalErr a }
+
+runMany :: Env -> L.List ExprAnn -> Identity (ResultWithEnv (L.List ExprAnn))
 runMany env exprs = run env $ evalMany exprs
 
-runOne :: Env -> ExprAnn -> Identity (Tuple (Either EvalErr ExprAnn) Env)
+runOne :: Env -> ExprAnn -> Identity (ResultWithEnv ExprAnn)
 runOne env expr = run env $ evalOne expr
 
-run :: forall a. Env -> Eval a -> Identity (Tuple (Either EvalErr a) Env)
+run :: forall a. Env -> Eval a -> Identity (ResultWithEnv a)
 run env evaled = resultWithEnv <$> rn evaled evalState
   where
     evalState = EvalState { env: env }
     rn = runStateT <<< runExceptT <<< unwrap
 
-resultWithEnv :: forall a b. Tuple a (EvalState Env) -> Tuple a Env
-resultWithEnv (Tuple res (EvalState { env })) = Tuple res env
+resultWithEnv :: forall a. Tuple (Either EvalErr a) (EvalState Env) -> ResultWithEnv a
+resultWithEnv (Tuple result (EvalState { env })) = { env, result }
 
 evalMany :: L.List ExprAnn -> Eval (L.List ExprAnn)
 evalMany = sequence <<< map eval
