@@ -1,17 +1,13 @@
 module Main where
 
-import Prelude
+import Prelude (class Show, map, mempty, show, ($), (>>>))
 
 import Control.Comonad (class Comonad, extract)
 import Data.Array as Arr
-import Data.Bifunctor (lmap, bimap)
+import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either)
 import Data.Foldable as F
-import Data.List
-import Data.Monoid as M
-import Data.Tuple as T
-import Effect (Effect)
-import Effect.Console (log)
+import Data.List (List)
 import Eval as Eval
 import ExprAnn as ExprAnn
 import Text.Parsing.Parser as P
@@ -71,7 +67,7 @@ runInSharedEnv run' env = F.foldl worker { env: env, results: mempty }
       }
       where ran = run' accum.env program
 
-runFromJs :: Array String -> Array String
+runFromJs :: Array String -> Array (Either RunErr String)
 runFromJs = run' >>> showResults
   where run' = runInSharedEnv runOne mempty
-        showResults = _.results >>> map (either show show) >>> Arr.reverse
+        showResults = _.results >>> map (map show) >>> Arr.reverse

@@ -3,16 +3,18 @@ module ExprAnn
   , Env
   , Expr(..)
   , ExprAnn(..)
+  , ExprTipe(..)
   , SrcLoc(..)
   , SrcSpan(..)
   , SFrm(..)
+  , sfrmNumArgs
+  , toExprTipe
   ) where
 
 import Prelude
 import Data.Foldable (intercalate)
 import Data.List (List)
 import Data.Map (Map)
-import Data.Newtype (class Newtype)
 
 data ExprAnn = ExprAnn Expr Ann
 derive instance exprAnnEq :: Eq ExprAnn
@@ -24,7 +26,7 @@ type Ann = { srcSpan :: SrcSpan }
 type SrcSpan = { begin :: SrcLoc, end :: SrcLoc }
 type SrcLoc = { line :: Int, column :: Int }
 
-data Expr 
+data Expr
   = Sym String
   | SFrm SFrm
   | Fn Env (List ExprAnn) ExprAnn
@@ -62,3 +64,32 @@ instance showSFrm :: Show SFrm where
   show IsEq = "=="
   show Lambda = "fn"
   show Quote = "quote"
+
+sfrmNumArgs :: SFrm -> Int
+sfrmNumArgs Cons = 2
+sfrmNumArgs Def = 1
+sfrmNumArgs First = 1
+sfrmNumArgs If = 3
+sfrmNumArgs IsAtm = 1
+sfrmNumArgs IsEq = 1
+sfrmNumArgs Lambda = 2
+sfrmNumArgs Quote = 1
+sfrmNumArgs Rest = 1
+
+data ExprTipe
+  = SymTipe
+  | LstTipe
+  | FnTipe
+  | SFrmTipe
+
+toExprTipe :: ExprAnn -> ExprTipe
+toExprTipe (ExprAnn expr _ ) =
+  case expr of
+    Sym _ ->
+      SymTipe
+    Lst _ ->
+      LstTipe
+    Fn _ _ _ ->
+      FnTipe
+    SFrm _ ->
+      SFrmTipe
