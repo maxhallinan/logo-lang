@@ -1,4 +1,4 @@
-module Parser (Parser, parseMany, parseOne) where
+module Parser (Parser, ParseErr, parseMany, parseOne) where
 
 import Prelude
 
@@ -16,6 +16,8 @@ import Text.Parsing.Parser.String as S
 import Text.Parsing.Parser.Token as T
 
 type Parser a = P.Parser String a
+
+type ParseErr = P.ParseError
 
 parseMany :: String -> Either P.ParseError (List E.ExprAnn)
 parseMany = flip P.runParser $ fileOf (manyOf exprAnn)

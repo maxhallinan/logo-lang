@@ -7,7 +7,7 @@ import Data.Foldable (intercalate)
 import Data.Traversable (sequence, traverse)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
-import Main as Main
+import Run as Run
 import Node.Encoding as Enc
 import Node.FS.Aff (exists, readdir, readTextFile, writeTextFile)
 import Node.Path as Path
@@ -63,7 +63,7 @@ evalFile
 evalFile { file, path } = pure $ { path: path, result: run file }
   where showErr = show
         showRes = intercalate "\n" <<< map show
-        run = either showErr showRes <<< _.result <<< Main.runMany mempty
+        run = either showErr showRes <<< _.result <<< Run.runMany mempty
 
 type DirName = String
 

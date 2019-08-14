@@ -3,9 +3,10 @@ module Eval
   , Eval
   , EvalErr(..)
   , EvalT
+  , Result
   , ResultWithEnv
-  , runMany
-  , runOne
+  , evalMany
+  , evalOne
   ) where
 
 import Prelude
@@ -164,28 +165,24 @@ updateEnv key val = do
   evalState <- unwrap <$> S.get
   S.put $ EvalState (evalState { env = M.insert key val evalState.env })
 
-type ResultWithEnv a = { env :: Env, result :: Either EvalErr a }
+type Result a = ResultWithEnv EvalErr a
 
-runMany :: Env -> L.List ExprAnn -> Identity (ResultWithEnv (L.List ExprAnn))
-runMany env exprs = run env $ evalMany exprs
+type ResultWithEnv a b = { env :: Env, result :: Either a b }
 
-runOne :: Env -> ExprAnn -> Identity (ResultWithEnv ExprAnn)
-runOne env expr = run env $ evalOne expr
+evalMany :: Env -> L.List ExprAnn -> Identity (Result (L.List ExprAnn))
+evalMany env = runEval env <<< sequence <<< map eval
 
-run :: forall a. Env -> Eval a -> Identity (ResultWithEnv a)
-run env evaled = resultWithEnv <$> rn evaled evalState
+evalOne :: Env -> ExprAnn -> Identity (Result ExprAnn)
+evalOne env = runEval env <<< eval
+
+runEval :: forall a. Env -> Eval a -> Identity (Result a)
+runEval env evaled = resultWithEnv <$> rn evaled evalState
   where
     evalState = EvalState { env: env }
     rn = runStateT <<< runExceptT <<< unwrap
 
-resultWithEnv :: forall a. Tuple (Either EvalErr a) (EvalState Env) -> ResultWithEnv a
+resultWithEnv :: forall a. Tuple (Either EvalErr a) (EvalState Env) -> Result a
 resultWithEnv (Tuple result (EvalState { env })) = { env, result }
-
-evalMany :: L.List ExprAnn -> Eval (L.List ExprAnn)
-evalMany = sequence <<< map eval
-
-evalOne :: ExprAnn -> Eval ExprAnn
-evalOne = eval
 
 eval :: ExprAnn -> Eval ExprAnn
 eval (ExprAnn expr ann) =
