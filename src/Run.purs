@@ -1,12 +1,10 @@
 module Run where
 
-import Prelude (class Show, mempty, show, ($), (>>>))
+import Prelude (class Show, show, ($), (>>>))
 
 import Control.Comonad (class Comonad, extract)
-import Data.Array as Arr
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either)
-import Data.Foldable as F
 import Data.List (List)
 import ExprAnn as ExprAnn
 import Eval as Eval
@@ -27,24 +25,6 @@ runOne = run Parser.parseOne Eval.evalOne
 
 runMany :: ExprAnn.Env -> String -> Eval.ResultWithEnv RunErr (List ExprAnn.ExprAnn)
 runMany = run Parser.parseMany Eval.evalMany
-
-runInSharedEnv
-  :: forall a
-   . (ExprAnn.Env -> String -> Eval.ResultWithEnv RunErr a)
-  -> ExprAnn.Env
-  -> Array String
-  -> { env :: ExprAnn.Env, results :: Array (Either RunErr a) }
-runInSharedEnv run' env = F.foldl worker { env: env, results: mempty }
-  where
-    worker
-      :: { env :: ExprAnn.Env, results :: Array (Either RunErr a) }
-      -> String
-      -> { env :: ExprAnn.Env, results :: Array (Either RunErr a) }
-    worker accum program =
-      { env: ran.env
-      , results: Arr.cons ran.result accum.results
-      }
-      where ran = run' accum.env program
 
 run
   :: forall m a
