@@ -37,12 +37,12 @@ spec = do
           "first" `parsesManySFrmTo` (SFrm First)
         it "parses rest" do
           "rest" `parsesManySFrmTo` (SFrm Rest)
-        it "parses ::" do
-          "::" `parsesManySFrmTo` (SFrm Cons)
-        it "parses =" do
-          "=" `parsesManySFrmTo` (SFrm Def)
-        it "parses ==" do
-          "==" `parsesManySFrmTo` (SFrm IsEq)
+        it "parses cons" do
+          "cons" `parsesManySFrmTo` (SFrm Cons)
+        it "parses label" do
+          "label" `parsesManySFrmTo` (SFrm Def)
+        it "parses equal?" do
+          "equal?" `parsesManySFrmTo` (SFrm IsEq)
         it "parses fn" do
           "fn" `parsesManySFrmTo` (SFrm Lambda)
         it "parses quote" do
@@ -63,12 +63,12 @@ spec = do
           "first" `parsesOneSFrmTo` (SFrm First)
         it "parses rest" do
           "rest" `parsesOneSFrmTo` (SFrm Rest)
-        it "parses ::" do
-          "::" `parsesOneSFrmTo` (SFrm Cons)
-        it "parses =" do
-          "=" `parsesOneSFrmTo` (SFrm Def)
-        it "parses ==" do
-          "==" `parsesOneSFrmTo` (SFrm IsEq)
+        it "parses cons" do
+          "cons" `parsesOneSFrmTo` (SFrm Cons)
+        it "parses label" do
+          "label" `parsesOneSFrmTo` (SFrm Def)
+        it "parses equal?" do
+          "equal?" `parsesOneSFrmTo` (SFrm IsEq)
         it "parses fn" do
           "fn" `parsesOneSFrmTo` (SFrm Lambda)
         it "parses quote" do

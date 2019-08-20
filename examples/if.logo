@@ -7,7 +7,7 @@
 (if (atom? 'baz) 'foo 'bar)
 
 ; expression in consequent position
-(if (atom? 'baz) (:: 'x '(y z)) 'bar)
+(if (atom? 'baz) (cons 'x '(y z)) 'bar)
 
 ; expression in alternate position
-(if (atom? '(baz)) 'foo (:: 'x '(y z)))
+(if (atom? '(baz)) 'foo (cons 'x '(y z)))

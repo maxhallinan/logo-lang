@@ -48,11 +48,11 @@ symbol :: Parser E.ExprAnn
 symbol = annotate $ do
   identifier <- lexer.identifier
   case identifier of
-    "::" ->
+    "cons" ->
       pure $ E.SFrm E.Cons
-    "=" ->
+    "label" ->
       pure $ E.SFrm E.Def
-    "==" ->
+    "equal?" ->
       pure $ E.SFrm E.IsEq
     "atom?" ->
       pure $ E.SFrm E.IsAtm

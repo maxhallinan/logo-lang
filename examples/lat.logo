@@ -1,13 +1,13 @@
-(= null?
+(label null?
   (fn (xs)
-    (== xs (quote ()))))
+    (equal? xs (quote ()))))
 
-(= lat?
+(label lat?
   (fn (xs)
     (if (null? xs)
-      (quote t)
+      'true
       (if (atom? (first xs))
         (lat? (rest xs))
-        (quote ())))))
+        '()))))
 
 (lat? (quote (a b c)))

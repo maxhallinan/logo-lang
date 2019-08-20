@@ -1,0 +1,13 @@
+(label id (fn (x) x))
+
+; symbols have equality
+(equal? 'foo 'foo)
+(equal? 'foo 'bar)
+(equal? (id 'foo) (id 'foo))
+; empty lists have equality
+(equal? '() '())
+; lists do not have equality
+(equal? '(x y z) '(x y z))
+(equal? '(x y z) '(z y x))
+; functions do not have equality
+(equal? (fn (x) x) (fn (x) x))

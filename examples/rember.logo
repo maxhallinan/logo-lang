@@ -1,15 +1,15 @@
-(= null?
+(label null?
   (fn (xs)
-    (== xs (quote ()))))
+    (equal? xs '())))
 
-(= rember
+(label rember
   (fn (x xs)
     (if (null? xs)
       xs
-      (if (== x (first xs))
+      (if (equal? x (first xs))
         (rest xs)
-        (::
+        (cons
           (first xs)
           (rember x (rest xs)))))))
 
-(rember (quote b) (quote (a b c)))
+(rember 'b '(a b c))

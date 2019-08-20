@@ -1,2 +1,4 @@
 'foo
+(quote foo)
 '(x y z)
+(quote (x y z))

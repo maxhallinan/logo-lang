@@ -1,13 +1,13 @@
-(= null?
+(label null?
   (fn (xs)
-    (== xs (quote ()))))
+    (equal? xs '())))
 
-(= member?
+(label member?
   (fn (x xs)
     (if (null? xs)
       (quote t)
-      (if (== x (first xs))
-        (quote t)
+      (if (equal? x (first xs))
+        'true
         (member? x (rest xs))))))
 
-(member? (quote c) (quote (a b c)))
+(member? 'c '(a b c))
