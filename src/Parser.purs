@@ -32,7 +32,7 @@ manyOf :: forall a. Parser a -> Parser (List a)
 manyOf = flip C.sepBy lexer.whiteSpace
 
 exprAnn :: Parser E.ExprAnn
-exprAnn = fix $ \p -> float <|> symbol <|> quoted p <|> listOf p
+exprAnn = fix $ \p -> number <|> symbol <|> quoted p <|> listOf p
 
 listOf :: Parser E.ExprAnn -> Parser E.ExprAnn
 listOf p = annotate $ E.Lst <$> lexer.parens (manyRec p)
@@ -44,8 +44,14 @@ quoted p = annotate $ do
   x <- p
   pure $ E.Lst (Cons quote (pure x))
 
+number :: Parser E.ExprAnn
+number = C.try float <|> integer
+
+integer :: Parser E.ExprAnn
+integer = annotate $ map E.Integer lexer.integer
+
 float :: Parser E.ExprAnn
-float = annotate $ (map E.Float lexer.float)
+float = annotate $ map E.Float lexer.float
 
 symbol :: Parser E.ExprAnn
 symbol = annotate $ do

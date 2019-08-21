@@ -31,6 +31,7 @@ data Expr
   | SFrm SFrm
   | Fn Env (List ExprAnn) ExprAnn
   | Lst (List ExprAnn)
+  | Integer Int
   | Float Number
 derive instance eqExpr :: Eq Expr
 
@@ -39,6 +40,7 @@ instance showExpr :: Show Expr where
   show (SFrm sfrm) = show sfrm
   show (Fn _ _ _) = "<function>"
   show (Float n) = show n
+  show (Integer n) = show n
   show (Lst exprs) = "(" <> exprs' <> ")"
     where exprs' = intercalate " " $ map show exprs
 
@@ -59,11 +61,11 @@ derive instance eqSFrm :: Eq SFrm
 instance showSFrm :: Show SFrm where
   show First = "first"
   show Rest = "rest"
-  show Cons = "::"
+  show Cons = "cons"
   show If = "if"
-  show Def = "def"
+  show Def = "label"
   show IsAtm = "atom?"
-  show IsEq = "=="
+  show IsEq = "equal?"
   show Lambda = "fn"
   show Quote = "quote"
 
@@ -83,7 +85,8 @@ data ExprTipe
   | LstTipe
   | FnTipe
   | SFrmTipe
-  | NumTipe
+  | FloatTipe
+  | IntegerTipe
 
 toExprTipe :: ExprAnn -> ExprTipe
 toExprTipe (ExprAnn expr _ ) =
@@ -97,4 +100,6 @@ toExprTipe (ExprAnn expr _ ) =
     SFrm _ ->
       SFrmTipe
     Float _ ->
-      NumTipe
+      FloatTipe
+    Integer _ ->
+      IntegerTipe

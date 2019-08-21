@@ -8,6 +8,10 @@
 ; empty lists have equality
 (equal? '() '())
 
+; integers have equality
+(equal? 1 1)
+(equal? 1 2)
+
 ; floats have equality
 (equal? 1.0 1.0)
 (equal? 1.0 2.0)

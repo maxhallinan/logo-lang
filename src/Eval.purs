@@ -195,6 +195,8 @@ eval exprAnn@(ExprAnn expr ann) =
       evalLst ann xs
     (Float _) ->
       pure $ exprAnn
+    (Integer _) ->
+      pure $ exprAnn
     _ ->
       throwUnknownErr ann
 
@@ -271,6 +273,8 @@ evalIsAtm ann (L.Cons e L.Nil) = do
   case x of
     Float _ ->
       pure $ ExprAnn (Sym "true") ann
+    Integer _ ->
+      pure $ ExprAnn (Sym "true") ann
     Sym _ ->
       pure $ ExprAnn (Sym "true") ann
     Lst L.Nil ->
@@ -285,6 +289,10 @@ evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
   ExprAnn y _ <- eval e2
   case Tuple x y of
     Tuple (Float n1) (Float n2) ->
+      if n1 == n2
+      then pure $ ExprAnn (Sym "true") ann
+      else pure $ ExprAnn (Lst L.Nil) ann
+    Tuple (Integer n1) (Integer n2) ->
       if n1 == n2
       then pure $ ExprAnn (Sym "true") ann
       else pure $ ExprAnn (Lst L.Nil) ann

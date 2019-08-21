@@ -24,6 +24,9 @@ spec :: Spec Unit
 spec = do
   describe "Parser" do
     describe "Parser.parseMany" do
+      describe "integer" do
+        it "parses a integer" $ do
+          quickCheck prop_parseMany_Integer
       describe "float" do
         it "parses a float" $ do
           quickCheck prop_parseMany_Float
@@ -53,6 +56,9 @@ spec = do
         it "parses if" do
           "if" `parsesManySFrmTo` (SFrm If)
     describe "Parser.parseOne" do
+      describe "integer" do
+        it "parses a integer" $ do
+          quickCheck prop_parseOne_Integer
       describe "float" do
         it "parses a float" $ do
           quickCheck prop_parseOne_Float
@@ -152,6 +158,26 @@ prop_parseMany_Float :: ArbFloat -> Boolean
 prop_parseMany_Float (ArbFloat float) =
   case parseMany float of
     Right (L.Cons (ExprAnn (Float _) _) _) -> true
+    _ -> false
+
+newtype ArbInteger = ArbInteger String
+derive instance eqArbInteger :: Eq ArbInteger
+
+instance arbitraryArbInteger :: Arbitrary ArbInteger where
+  arbitrary = do
+    int <- arbitrary :: Gen Int
+    pure $ ArbInteger (show int)
+
+prop_parseOne_Integer :: ArbInteger -> Boolean
+prop_parseOne_Integer (ArbInteger int) =
+  case parseOne int of
+    Right (ExprAnn (Integer _) _) -> true
+    _ -> false
+
+prop_parseMany_Integer :: ArbInteger -> Boolean
+prop_parseMany_Integer (ArbInteger int) =
+  case parseMany int of
+    Right (L.Cons (ExprAnn (Integer _) _) _) -> true
     _ -> false
 
 genSexpr :: Gen String
