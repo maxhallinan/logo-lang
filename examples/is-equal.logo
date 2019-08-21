@@ -4,10 +4,17 @@
 (equal? 'foo 'foo)
 (equal? 'foo 'bar)
 (equal? (id 'foo) (id 'foo))
+
 ; empty lists have equality
 (equal? '() '())
+
+; floats have equality
+(equal? 1.0 1.0)
+(equal? 1.0 2.0)
+
 ; lists do not have equality
 (equal? '(x y z) '(x y z))
 (equal? '(x y z) '(z y x))
+
 ; functions do not have equality
 (equal? (fn (x) x) (fn (x) x))

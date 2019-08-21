@@ -17,13 +17,16 @@ import Parser (parseMany, parseOne)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
 import Test.Spec.QuickCheck (quickCheck)
-import Test.QuickCheck.Arbitrary (class Arbitrary)
+import Test.QuickCheck.Arbitrary (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Gen, arrayOf, elements, oneOf, suchThat, resize)
 
 spec :: Spec Unit
 spec = do
   describe "Parser" do
     describe "Parser.parseMany" do
+      describe "float" do
+        it "parses a float" $ do
+          quickCheck prop_parseMany_Float
       describe "symbol" do
         it "parses a symbol" $ do
           quickCheck prop_parseMany_Sym
@@ -50,6 +53,9 @@ spec = do
         it "parses if" do
           "if" `parsesManySFrmTo` (SFrm If)
     describe "Parser.parseOne" do
+      describe "float" do
+        it "parses a float" $ do
+          quickCheck prop_parseOne_Float
       describe "symbol" do
         it "parses a symbol" $ do
           quickCheck prop_parseOne_Sym
@@ -126,6 +132,26 @@ prop_parseMany_Lst :: ArbLst -> Boolean
 prop_parseMany_Lst (ArbLst lst) =
   case parseMany lst of
     Right (L.Cons (ExprAnn (Lst _) _) _) -> true
+    _ -> false
+
+newtype ArbFloat = ArbFloat String
+derive instance eqArbFloat :: Eq ArbFloat
+
+instance arbitraryArbFloat :: Arbitrary ArbFloat where
+  arbitrary = do
+    float <- arbitrary :: Gen Number
+    pure $ ArbFloat (show float)
+
+prop_parseOne_Float :: ArbFloat -> Boolean
+prop_parseOne_Float (ArbFloat float) =
+  case parseOne float of
+    Right (ExprAnn (Float _) _) -> true
+    _ -> false
+
+prop_parseMany_Float :: ArbFloat -> Boolean
+prop_parseMany_Float (ArbFloat float) =
+  case parseMany float of
+    Right (L.Cons (ExprAnn (Float _) _) _) -> true
     _ -> false
 
 genSexpr :: Gen String

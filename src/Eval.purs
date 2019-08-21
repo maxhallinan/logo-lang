@@ -185,7 +185,7 @@ resultWithEnv :: forall a. Tuple (Either EvalErr a) (EvalState Env) -> Result a
 resultWithEnv (Tuple result (EvalState { env })) = { env, result }
 
 eval :: ExprAnn -> Eval ExprAnn
-eval (ExprAnn expr ann) =
+eval exprAnn@(ExprAnn expr ann) =
   case expr of
     (Sym name) ->
       evalSym ann name
@@ -193,6 +193,8 @@ eval (ExprAnn expr ann) =
       evalSFrm ann sfrm args
     (Lst xs) ->
       evalLst ann xs
+    (Float _) ->
+      pure $ exprAnn
     _ ->
       throwUnknownErr ann
 
@@ -267,6 +269,8 @@ evalIsAtm :: Ann -> Args -> Eval ExprAnn
 evalIsAtm ann (L.Cons e L.Nil) = do
   ExprAnn x _ <- eval e
   case x of
+    Float _ ->
+      pure $ ExprAnn (Sym "true") ann
     Sym _ ->
       pure $ ExprAnn (Sym "true") ann
     Lst L.Nil ->
@@ -280,6 +284,10 @@ evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
   ExprAnn x _ <- eval e1
   ExprAnn y _ <- eval e2
   case Tuple x y of
+    Tuple (Float n1) (Float n2) ->
+      if n1 == n2
+      then pure $ ExprAnn (Sym "true") ann
+      else pure $ ExprAnn (Lst L.Nil) ann
     Tuple (Sym name1) (Sym name2) ->
       if name1 == name2
       then pure $ ExprAnn (Sym "true") ann

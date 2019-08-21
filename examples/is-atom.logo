@@ -1,3 +1,4 @@
 (atom? 'foo)
 (atom? '())
+(atom? 1.0)
 (atom? '(x y z))
