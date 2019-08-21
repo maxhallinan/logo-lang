@@ -45,8 +45,8 @@ spec = do
           "rest" `parsesManySFrmTo` (SFrm Rest)
         it "parses cons" do
           "cons" `parsesManySFrmTo` (SFrm Cons)
-        it "parses label" do
-          "label" `parsesManySFrmTo` (SFrm Def)
+        it "parses def" do
+          "def" `parsesManySFrmTo` (SFrm Def)
         it "parses equal?" do
           "equal?" `parsesManySFrmTo` (SFrm IsEq)
         it "parses fn" do
@@ -77,8 +77,8 @@ spec = do
           "rest" `parsesOneSFrmTo` (SFrm Rest)
         it "parses cons" do
           "cons" `parsesOneSFrmTo` (SFrm Cons)
-        it "parses label" do
-          "label" `parsesOneSFrmTo` (SFrm Def)
+        it "parses def" do
+          "def" `parsesOneSFrmTo` (SFrm Def)
         it "parses equal?" do
           "equal?" `parsesOneSFrmTo` (SFrm IsEq)
         it "parses fn" do

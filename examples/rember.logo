@@ -1,8 +1,8 @@
-(label null?
+(def null?
   (fn (xs)
     (equal? xs '())))
 
-(label rember
+(def rember
   (fn (x xs)
     (if (null? xs)
       xs

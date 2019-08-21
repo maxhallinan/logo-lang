@@ -1,3 +1,3 @@
-(label id (fn (x) x))
-(label y 'foo)
+(def id (fn (x) x))
+(def y 'foo)
 (id y)

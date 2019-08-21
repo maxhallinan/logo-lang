@@ -59,7 +59,7 @@ symbol = annotate $ do
   case identifier of
     "cons" ->
       pure $ E.SFrm E.Cons
-    "label" ->
+    "def" ->
       pure $ E.SFrm E.Def
     "equal?" ->
       pure $ E.SFrm E.IsEq

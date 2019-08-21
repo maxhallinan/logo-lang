@@ -1,8 +1,8 @@
-(label null?
+(def null?
   (fn (xs)
     (equal? xs (quote ()))))
 
-(label lat?
+(def lat?
   (fn (xs)
     (if (null? xs)
       'true

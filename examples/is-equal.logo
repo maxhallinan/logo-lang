@@ -1,4 +1,4 @@
-(label id (fn (x) x))
+(def id (fn (x) x))
 
 ; symbols have equality
 (equal? 'foo 'foo)

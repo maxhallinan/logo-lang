@@ -1,8 +1,8 @@
-(label null?
+(def null?
   (fn (xs)
     (equal? xs '())))
 
-(label member?
+(def member?
   (fn (x xs)
     (if (null? xs)
       (quote t)
