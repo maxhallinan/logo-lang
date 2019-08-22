@@ -40,3 +40,6 @@ runInSharedEnv run' env = F.foldl worker { env: env, results: mempty }
       }
       where ran = run' accum.env i.program
 
+
+showRunErr :: Run.RunErr -> String
+showRunErr = show

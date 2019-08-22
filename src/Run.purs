@@ -45,3 +45,6 @@ run parse eval initEnv = parse >>> either failWithParseErr evalWithEnv
       , result: lmap EvalErr evaled.result
       }
       where evaled = extract $ eval initEnv expr
+
+showRunError :: RunErr -> String
+showRunError = show

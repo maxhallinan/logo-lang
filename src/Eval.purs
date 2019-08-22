@@ -337,22 +337,22 @@ evalLst ann (L.Cons x xs) = do
   args <- traverse eval xs
   case fn of
     Fn localEnv params body -> do
-      applyLambda ann params args body
+      applyLambda ann localEnv params args body
     _ ->
       throwWrongTipeErr ann FnTipe (toExprTipe expr)
 evalLst ann L.Nil = throwEmptyFnApplicationErr ann
 
-applyLambda :: Ann -> L.List ExprAnn -> L.List ExprAnn -> ExprAnn -> Eval ExprAnn
-applyLambda ann params args body = do
-  env <- bindArgs ann params args
+applyLambda :: Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> ExprAnn -> Eval ExprAnn
+applyLambda ann localEnv params args body = do
+  env <- bindArgs ann localEnv params args
   let evalState = EvalState { env: env }
   EvalT $ mapExceptT (withStateT $ const evalState) (unwrap $ eval body)
 
-bindArgs :: Ann -> L.List ExprAnn -> L.List ExprAnn -> Eval Env
-bindArgs ann params args = do
+bindArgs :: Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> Eval Env
+bindArgs ann localEnv params args = do
   env <- getEnv
   bindings <- sequence (L.zipWith toBinding params args)
-  pure $ M.fromFoldable bindings <> env
+  pure $ M.fromFoldable bindings <> localEnv <> env
   where
     toBinding :: ExprAnn -> ExprAnn -> Eval (Tuple String ExprAnn)
     toBinding param arg = do

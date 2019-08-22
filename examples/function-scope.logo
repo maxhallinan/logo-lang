@@ -1,0 +1,12 @@
+; test that a function is evaluated in an environment that includes a lexical scope
+(def cons_ (fn (x y) 
+  (fn (n) 
+      (if (equal? 0 n)
+          x
+          y))))
+(def first_ (fn (xs) (xs 0)))
+(def rest_ (fn (xs) (xs 1)))
+(def foo (cons_ 'x (cons_ 'y (cons_ 'z 'nil))))
+(first_ foo)
+(first_ (rest_ foo))
+(first_ (rest_ (rest_ foo)))
