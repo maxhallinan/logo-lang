@@ -1,0 +1,3 @@
+(define id (lambda (x) x))
+(define y 'foo)
+(id y)

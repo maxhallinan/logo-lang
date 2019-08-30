@@ -57,24 +57,24 @@ symbol :: Parser E.ExprAnn
 symbol = annotate $ do
   identifier <- lexer.identifier
   case identifier of
+    "car" ->
+      pure $ E.SFrm E.Car
+    "cdr" ->
+      pure $ E.SFrm E.Cdr
     "cons" ->
       pure $ E.SFrm E.Cons
-    "def" ->
+    "define" ->
       pure $ E.SFrm E.Def
     "equal?" ->
       pure $ E.SFrm E.IsEq
     "atom?" ->
       pure $ E.SFrm E.IsAtm
-    "first" ->
-      pure $ E.SFrm E.First
-    "fn" ->
+    "lambda" ->
       pure $ E.SFrm E.Lambda
     "if" ->
       pure $ E.SFrm E.If
     "quote" ->
       pure $ E.SFrm E.Quote
-    "rest" ->
-      pure $ E.SFrm E.Rest
     _ ->
       pure $ E.Sym identifier
 

@@ -1,3 +1,3 @@
-((fn (x) x) 'foo)
-((fn (xs) (first xs)) '(x y z))
-((fn (xs) (first xs)) (rest '(x y z)))
+((lambda (x) x) 'foo)
+((lambda (xs) (car xs)) '(x y z))
+((lambda (xs) (car xs)) (cdr '(x y z)))

@@ -39,18 +39,18 @@ spec = do
       describe "special forms" do
         it "parses atom?" do
           "atom?" `parsesManySFrmTo` (SFrm IsAtm)
-        it "parses first" do
-          "first" `parsesManySFrmTo` (SFrm First)
-        it "parses rest" do
-          "rest" `parsesManySFrmTo` (SFrm Rest)
+        it "parses car" do
+          "car" `parsesManySFrmTo` (SFrm Car)
+        it "parses cdr" do
+          "cdr" `parsesManySFrmTo` (SFrm Cdr)
         it "parses cons" do
           "cons" `parsesManySFrmTo` (SFrm Cons)
-        it "parses def" do
-          "def" `parsesManySFrmTo` (SFrm Def)
+        it "parses define" do
+          "define" `parsesManySFrmTo` (SFrm Def)
         it "parses equal?" do
           "equal?" `parsesManySFrmTo` (SFrm IsEq)
-        it "parses fn" do
-          "fn" `parsesManySFrmTo` (SFrm Lambda)
+        it "parses lambda" do
+          "lambda" `parsesManySFrmTo` (SFrm Lambda)
         it "parses quote" do
           "quote" `parsesManySFrmTo` (SFrm Quote)
         it "parses if" do
@@ -71,18 +71,18 @@ spec = do
       describe "special forms" do
         it "parses atom?" do
           "atom?" `parsesOneSFrmTo` (SFrm IsAtm)
-        it "parses first" do
-          "first" `parsesOneSFrmTo` (SFrm First)
-        it "parses rest" do
-          "rest" `parsesOneSFrmTo` (SFrm Rest)
+        it "parses car" do
+          "car" `parsesOneSFrmTo` (SFrm Car)
+        it "parses cdr" do
+          "cdr" `parsesOneSFrmTo` (SFrm Cdr)
         it "parses cons" do
           "cons" `parsesOneSFrmTo` (SFrm Cons)
-        it "parses def" do
-          "def" `parsesOneSFrmTo` (SFrm Def)
+        it "parses define" do
+          "define" `parsesOneSFrmTo` (SFrm Def)
         it "parses equal?" do
           "equal?" `parsesOneSFrmTo` (SFrm IsEq)
-        it "parses fn" do
-          "fn" `parsesOneSFrmTo` (SFrm Lambda)
+        it "parses lambda" do
+          "lambda" `parsesOneSFrmTo` (SFrm Lambda)
         it "parses quote" do
           "quote" `parsesOneSFrmTo` (SFrm Quote)
         it "parses if" do
@@ -250,4 +250,4 @@ genSym =
 
 isNotSFrm :: String -> Boolean
 isNotSFrm x = not $ elem x sFrms
-  where sFrms = ["::", "=", "==", "atom?", "first", "fn", "if", "quote", "rest"]
+  where sFrms = ["::", "=", "==", "atom?", "first", "lambda", "if", "quote", "rest"]

@@ -1,15 +1,15 @@
-(def null?
-  (fn (xs)
+(define null?
+  (lambda (xs)
     (equal? xs '())))
 
-(def rember
-  (fn (x xs)
+(define rember
+  (lambda (x xs)
     (if (null? xs)
       xs
-      (if (equal? x (first xs))
-        (rest xs)
+      (if (equal? x (car xs))
+        (cdr xs)
         (cons
-          (first xs)
-          (rember x (rest xs)))))))
+          (car xs)
+          (rember x (cdr xs)))))))
 
 (rember 'b '(a b c))

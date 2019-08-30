@@ -47,8 +47,8 @@ instance showExpr :: Show Expr where
 type Env = Map String ExprAnn
 
 data SFrm
-  = First
-  | Rest
+  = Car
+  | Cdr
   | Cons
   | If
   | Def
@@ -59,26 +59,26 @@ data SFrm
 derive instance eqSFrm :: Eq SFrm
 
 instance showSFrm :: Show SFrm where
-  show First = "first"
-  show Rest = "rest"
+  show Car = "car"
+  show Cdr = "cdr"
   show Cons = "cons"
   show If = "if"
-  show Def = "label"
+  show Def = "define"
   show IsAtm = "atom?"
   show IsEq = "equal?"
-  show Lambda = "fn"
+  show Lambda = "lambda"
   show Quote = "quote"
 
 sfrmNumArgs :: SFrm -> Int
 sfrmNumArgs Cons = 2
 sfrmNumArgs Def = 1
-sfrmNumArgs First = 1
+sfrmNumArgs Car = 1
 sfrmNumArgs If = 3
 sfrmNumArgs IsAtm = 1
 sfrmNumArgs IsEq = 1
 sfrmNumArgs Lambda = 2
 sfrmNumArgs Quote = 1
-sfrmNumArgs Rest = 1
+sfrmNumArgs Cdr = 1
 
 data ExprTipe
   = SymTipe

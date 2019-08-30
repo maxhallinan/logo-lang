@@ -1,13 +1,14 @@
-(def null?
-  (fn (xs)
+(define null?
+  (lambda (xs)
     (equal? xs (quote ()))))
 
-(def lat?
-  (fn (xs)
+(define lat?
+  (lambda (xs)
     (if (null? xs)
       'true
-      (if (atom? (first xs))
-        (lat? (rest xs))
+      (if (atom? (car xs))
+        (lat? (cdr xs))
         '()))))
 
 (lat? (quote (a b c)))
+(lat? (quote (a (b) c)))

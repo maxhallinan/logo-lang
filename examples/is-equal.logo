@@ -1,4 +1,4 @@
-(def id (fn (x) x))
+(define id (lambda (x) x))
 
 ; symbols have equality
 (equal? 'foo 'foo)
@@ -21,4 +21,4 @@
 (equal? '(x y z) '(z y x))
 
 ; functions do not have equality
-(equal? (fn (x) x) (fn (x) x))
+(equal? (lambda (x) x) (lambda (x) x))

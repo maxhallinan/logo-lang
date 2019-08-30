@@ -215,13 +215,13 @@ evalSFrm :: Ann -> SFrm -> Args -> Eval ExprAnn
 evalSFrm ann sfrm L.Nil = throwSFrmNumArgsErr ann sfrm L.Nil
 evalSFrm ann Cons args = evalCons ann args
 evalSFrm ann Def args = evalDef ann args
-evalSFrm ann First args = evalFirst ann args
+evalSFrm ann Car args = evalCar ann args
 evalSFrm ann If args = evalIf ann args
 evalSFrm ann IsAtm args = evalIsAtm ann args
 evalSFrm ann IsEq args = evalIsEq ann args
 evalSFrm ann Lambda args = evalLambda ann args
 evalSFrm ann Quote args = evalQuote ann args
-evalSFrm ann Rest args = evalRest ann args
+evalSFrm ann Cdr args = evalCdr ann args
 
 evalCons :: Ann -> Args -> Eval ExprAnn
 evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
@@ -245,8 +245,8 @@ evalDef ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
       throwWrongTipeErr ann SymTipe (toExprTipe e1)
 evalDef ann args = throwSFrmNumArgsErr ann Def args
 
-evalFirst :: Ann -> Args -> Eval ExprAnn
-evalFirst ann (L.Cons e L.Nil) = do
+evalCar :: Ann -> Args -> Eval ExprAnn
+evalCar ann (L.Cons e L.Nil) = do
   expr@(ExprAnn xs _) <- eval e
   case xs of
     Lst L.Nil ->
@@ -255,7 +255,7 @@ evalFirst ann (L.Cons e L.Nil) = do
       pure h
     _ ->
       throwWrongTipeErr ann LstTipe (toExprTipe expr)
-evalFirst ann args = throwSFrmNumArgsErr ann First args
+evalCar ann args = throwSFrmNumArgsErr ann Car args
 
 evalIf :: Ann -> Args -> Eval ExprAnn
 evalIf ann (L.Cons p (L.Cons e1 (L.Cons e2 L.Nil))) = do
@@ -276,8 +276,6 @@ evalIsAtm ann (L.Cons e L.Nil) = do
     Integer _ ->
       pure $ ExprAnn (Sym "true") ann
     Sym _ ->
-      pure $ ExprAnn (Sym "true") ann
-    Lst L.Nil ->
       pure $ ExprAnn (Sym "true") ann
     _ ->
       pure $ ExprAnn (Lst L.Nil) ann
@@ -320,8 +318,8 @@ evalQuote :: Ann -> Args -> Eval ExprAnn
 evalQuote ann (L.Cons expr L.Nil) = pure $ expr
 evalQuote ann args = throwSFrmNumArgsErr ann Quote args
 
-evalRest :: Ann -> Args -> Eval ExprAnn
-evalRest ann (L.Cons e L.Nil) = do
+evalCdr :: Ann -> Args -> Eval ExprAnn
+evalCdr ann (L.Cons e L.Nil) = do
   xs'@(ExprAnn xs _) <- eval e
   case xs of
     Lst L.Nil ->
@@ -329,7 +327,7 @@ evalRest ann (L.Cons e L.Nil) = do
     Lst (L.Cons _ t) ->
       pure $ ExprAnn (Lst t) ann
     _ -> throwWrongTipeErr ann LstTipe (toExprTipe xs')
-evalRest ann args = throwSFrmNumArgsErr ann Rest args
+evalCdr ann args = throwSFrmNumArgsErr ann Cdr args
 
 evalLst :: Ann -> Args -> Eval ExprAnn
 evalLst ann (L.Cons x xs) = do
