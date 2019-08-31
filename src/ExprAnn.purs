@@ -113,10 +113,11 @@ mkTrue ann = ExprAnn (Sym "#t") ann
 
 isTrue :: ExprAnn -> Boolean
 isTrue (ExprAnn (Lst L.Nil) _) = false
+isTrue (ExprAnn (Sym "#f") _) = false
 isTrue _ = true
 
 mkFalse :: Ann -> ExprAnn
-mkFalse ann = ExprAnn (Lst L.Nil) ann
+mkFalse ann = ExprAnn (Sym "#f") ann
 
 isFalse :: ExprAnn -> Boolean
 isFalse = not <<< isTrue

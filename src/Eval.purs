@@ -259,12 +259,10 @@ evalCar ann args = throwSFrmNumArgsErr ann Car args
 
 evalIf :: Ann -> Args -> Eval ExprAnn
 evalIf ann (L.Cons p (L.Cons e1 (L.Cons e2 L.Nil))) = do
-  ExprAnn p' _ <- eval p
-  case p' of
-    Lst L.Nil ->
-      eval e2
-    _ ->
-      eval e1
+  p' <- eval p
+  if isTrue p'
+  then eval e1
+  else eval e2
 evalIf ann args = throwSFrmNumArgsErr ann If args
 
 evalIsAtm :: Ann -> Args -> Eval ExprAnn
@@ -272,13 +270,16 @@ evalIsAtm ann (L.Cons e L.Nil) = do
   ExprAnn x _ <- eval e
   case x of
     Float _ ->
-      pure $ ExprAnn (Sym "true") ann
+      pure t
     Integer _ ->
-      pure $ ExprAnn (Sym "true") ann
+      pure t
     Sym _ ->
-      pure $ ExprAnn (Sym "true") ann
+      pure t
     _ ->
-      pure $ ExprAnn (Lst L.Nil) ann
+      pure f
+  where
+    t = mkTrue ann
+    f = mkFalse ann
 evalIsAtm ann args = throwSFrmNumArgsErr ann IsAtm args
 
 evalIsEq :: Ann -> Args -> Eval ExprAnn
