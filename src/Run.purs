@@ -6,11 +6,9 @@ import Control.Comonad (class Comonad, extract)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either)
 import Data.List (List)
-import Data.Monoid ((<>))
 import ExprAnn as ExprAnn
 import Eval as Eval
 import Parser as Parser
-import Primitive as Primitive
 
 type Result a = Eval.ResultWithEnv RunErr a
 
@@ -46,7 +44,7 @@ run parse eval initEnv = parse >>> either failWithParseErr evalWithEnv
       { env: evaled.env
       , result: lmap EvalErr evaled.result
       }
-      where evaled = extract $ eval (Primitive.builtIns <> initEnv) expr
+      where evaled = extract $ eval initEnv expr
 
 showRunError :: RunErr -> String
 showRunError = show

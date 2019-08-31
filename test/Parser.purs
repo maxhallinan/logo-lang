@@ -12,7 +12,7 @@ import Data.NonEmpty ((:|), singleton)
 import Data.String (length)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect.Aff (Aff)
-import ExprAnn (Ann, Expr(..), ExprAnn(..), SFrm(..), Src(..), SrcLoc )
+import ExprAnn (Ann, Expr(..), ExprAnn(..), SFrm(..), SrcLoc )
 import Parser (parseMany, parseOne)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
@@ -96,7 +96,7 @@ exprAnn :: Expr -> SrcLoc -> SrcLoc -> ExprAnn
 exprAnn expr begin end = ExprAnn expr $ ann begin end
 
 ann :: SrcLoc -> SrcLoc -> Ann
-ann begin end = { src: Src { begin: begin, end: end } }
+ann begin end = { srcSpan: { begin: begin, end: end } }
 
 srcLoc :: Int -> Int -> SrcLoc
 srcLoc line column = { line: line, column: column }

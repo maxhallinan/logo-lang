@@ -86,7 +86,7 @@ annotate p = do
   expr <- p
   end <- location
   let srcSpan = { begin: begin, end: end }
-  let ann = { src: E.Src srcSpan }
+  let ann = { srcSpan: srcSpan }
   pure $ E.ExprAnn expr ann
   where location = P.position >>= (pure <<< unwrapPos)
         unwrapPos (Position loc) = loc

@@ -26,7 +26,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
-import ExprAnn (Ann, Env, Expr(..), ExprAnn(..), ExprTipe(..), SFrm(..), Src, isTrue, mkFalse, mkTrue, sfrmNumArgs, toExprTipe)
+import ExprAnn (Ann, Env, Expr(..), ExprAnn(..), ExprTipe(..), SFrm(..), SrcSpan, isTrue, mkFalse, mkTrue, sfrmNumArgs, toExprTipe)
 
 type Eval res = EvalT Identity Env res
 
@@ -43,7 +43,7 @@ derive newtype instance monadStateParserT :: Monad m => MonadState (EvalState e)
 derive newtype instance monadErrorParserT :: Monad m => MonadError EvalErr (EvalT m e)
 derive newtype instance monadThrowParserT :: Monad m => MonadThrow EvalErr (EvalT m e)
 
-data EvalErr = EvalErr ErrTipe Src
+data EvalErr = EvalErr ErrTipe SrcSpan
 
 data ErrTipe
   = NumArgs { expected :: Int, received :: Int }
@@ -165,7 +165,7 @@ instance showEvalErr :: Show EvalErr where
         "cond found no true predicates. Add an `else` clause at the end."
 
 throw :: forall m e a. Monad m => Ann -> ErrTipe -> EvalT m e a
-throw ann name = throwError $ EvalErr name ann.src
+throw ann name = throwError $ EvalErr name ann.srcSpan
 
 newtype EvalState env = EvalState { env :: env }
 derive instance evalStateNewtype :: Newtype (EvalState a) _
@@ -383,10 +383,6 @@ evalLst ann (L.Cons x xs) = do
   case fn of
     Fn localEnv params body -> do
       applyLambda ann localEnv params args body
-    Op1 _ op ->
-      applyOp1 ann op args
-    Op2 _ op ->
-      applyOp2 ann op args
     _ ->
       throwWrongTipeErr ann FnTipe (toExprTipe expr)
 evalLst ann L.Nil = throwEmptyFnApplicationErr ann
@@ -396,14 +392,6 @@ applyLambda ann localEnv params args body = do
   env <- bindArgs ann localEnv params args
   let evalState = EvalState { env: env }
   EvalT $ mapExceptT (withStateT $ const evalState) (unwrap $ eval body)
-
-applyOp1 :: Ann -> (Ann -> ExprAnn -> Eval ExprAnn) -> Args -> Eval ExprAnn
-applyOp1 ann op (L.Cons x L.Nil) = op ann x
-applyOp1 ann _ args = throwNumArgsErr ann 1 (length args)
-
-applyOp2 :: Ann -> (Ann -> ExprAnn -> ExprAnn -> ExprAnn) -> Args -> Eval ExprAnn
-applyOp2 ann op (L.Cons x (L.Cons y L.Nil)) = pure $ op ann x y
-applyOp2 ann _ args = throwNumArgsErr ann 2 (length args)
 
 bindArgs :: Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> Eval Env
 bindArgs ann localEnv params args = do
