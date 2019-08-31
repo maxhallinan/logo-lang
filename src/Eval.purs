@@ -52,6 +52,7 @@ data ErrTipe
   | UnknownVar { varName :: String }
   | EmptyFnApplication
   | UnknownErr
+  | TrueCondClauseNotFound
 
 numArgsErr :: Int -> Int -> ErrTipe
 numArgsErr expected received = NumArgs { expected, received }
@@ -135,6 +136,16 @@ throwEmptyFnApplicationErr
   -> EvalT m e a
 throwEmptyFnApplicationErr ann = throw ann emptyFnApplicationErr
 
+trueCondClauseNotFound :: ErrTipe
+trueCondClauseNotFound = TrueCondClauseNotFound
+
+throwTrueCondClauseNotFound
+  :: forall m e a
+   . Monad m
+  => Ann
+  -> EvalT m e a
+throwTrueCondClauseNotFound ann = throw ann trueCondClauseNotFound
+
 instance showEvalErr :: Show EvalErr where
   show (EvalErr errTipe _) =
     case errTipe of
@@ -142,14 +153,16 @@ instance showEvalErr :: Show EvalErr where
         "wrong number of arguments"
       WrongTipe _ ->
         "wrong type"
-      LstLength _ ->
-        "wrong list length"
+      LstLength ctx ->
+        "wrong list length " <> (show $ ctx.received)
       UnknownVar { varName } ->
         "unknown identifier " <> varName
       EmptyFnApplication ->
         "empty list in function application position"
       UnknownErr ->
         "unknown error"
+      TrueCondClauseNotFound ->
+        "cond found no true predicates. Add an `else` clause at the end."
 
 throw :: forall m e a. Monad m => Ann -> ErrTipe -> EvalT m e a
 throw ann name = throwError $ EvalErr name ann.srcSpan
@@ -222,6 +235,7 @@ evalSFrm ann IsEq args = evalIsEq ann args
 evalSFrm ann Lambda args = evalLambda ann args
 evalSFrm ann Quote args = evalQuote ann args
 evalSFrm ann Cdr args = evalCdr ann args
+evalSFrm ann Cond args = evalCond ann args
 
 evalCons :: Ann -> Args -> Eval ExprAnn
 evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
@@ -347,6 +361,20 @@ evalCdr ann (L.Cons e L.Nil) = do
       pure $ ExprAnn (Lst t) ann
     _ -> throwWrongTipeErr ann LstTipe (toExprTipe xs')
 evalCdr ann args = throwSFrmNumArgsErr ann Cdr args
+
+evalCond :: Ann -> Args -> Eval ExprAnn
+evalCond ann L.Nil = throwSFrmNumArgsErr ann Cond L.Nil
+evalCond ann clauses = go clauses
+  where
+    go :: Args -> Eval ExprAnn
+    go (L.Cons (ExprAnn (Lst (L.Cons predicate (L.Cons consequent L.Nil))) _) rest) = do
+      p <- isTrue <$> eval predicate
+      if p
+      then eval consequent
+      else go rest
+    go (L.Cons (ExprAnn (Lst xs) clauseAnn) _) = throwLstLengthErr clauseAnn 2 (length xs)
+    go (L.Cons expr _) = throwWrongTipeErr ann LstTipe (toExprTipe expr)
+    go L.Nil = throwTrueCondClauseNotFound ann
 
 evalLst :: Ann -> Args -> Eval ExprAnn
 evalLst ann (L.Cons x xs) = do

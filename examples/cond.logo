@@ -1,0 +1,6 @@
+(cond ('true 'foo) ('true 'bar) ('true 'baz))
+(cond ('false 'foo) ('true 'bar) ('true 'baz))
+(cond ('false 'foo) ('false 'bar) ('true 'baz))
+; (cond ('false 'foo))
+; (cond ('false))
+; (cond)

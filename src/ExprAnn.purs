@@ -53,6 +53,7 @@ type Env = Map String ExprAnn
 data SFrm
   = Car
   | Cdr
+  | Cond
   | Cons
   | If
   | Def
@@ -65,6 +66,7 @@ derive instance eqSFrm :: Eq SFrm
 instance showSFrm :: Show SFrm where
   show Car = "car"
   show Cdr = "cdr"
+  show Cond = "cond"
   show Cons = "cons"
   show If = "if"
   show Def = "define"
@@ -74,6 +76,7 @@ instance showSFrm :: Show SFrm where
   show Quote = "quote"
 
 sfrmNumArgs :: SFrm -> Int
+sfrmNumArgs Cond = 1
 sfrmNumArgs Cons = 2
 sfrmNumArgs Def = 1
 sfrmNumArgs Car = 1
@@ -109,15 +112,15 @@ toExprTipe (ExprAnn expr _ ) =
       IntegerTipe
 
 mkTrue :: Ann -> ExprAnn
-mkTrue ann = ExprAnn (Sym "#t") ann
+mkTrue ann = ExprAnn (Sym "true") ann
 
 isTrue :: ExprAnn -> Boolean
 isTrue (ExprAnn (Lst L.Nil) _) = false
-isTrue (ExprAnn (Sym "#f") _) = false
+isTrue (ExprAnn (Sym "false") _) = false
 isTrue _ = true
 
 mkFalse :: Ann -> ExprAnn
-mkFalse ann = ExprAnn (Sym "#f") ann
+mkFalse ann = ExprAnn (Sym "false") ann
 
 isFalse :: ExprAnn -> Boolean
 isFalse = not <<< isTrue

@@ -43,6 +43,8 @@ spec = do
           "car" `parsesManySFrmTo` (SFrm Car)
         it "parses cdr" do
           "cdr" `parsesManySFrmTo` (SFrm Cdr)
+        it "parses cond" do
+          "cond" `parsesManySFrmTo` (SFrm Cond)
         it "parses cons" do
           "cons" `parsesManySFrmTo` (SFrm Cons)
         it "parses define" do
@@ -75,6 +77,8 @@ spec = do
           "car" `parsesOneSFrmTo` (SFrm Car)
         it "parses cdr" do
           "cdr" `parsesOneSFrmTo` (SFrm Cdr)
+        it "parses cond" do
+          "cond" `parsesOneSFrmTo` (SFrm Cond)
         it "parses cons" do
           "cons" `parsesOneSFrmTo` (SFrm Cons)
         it "parses define" do
@@ -250,4 +254,4 @@ genSym =
 
 isNotSFrm :: String -> Boolean
 isNotSFrm x = not $ elem x sFrms
-  where sFrms = ["::", "=", "==", "atom?", "first", "lambda", "if", "quote", "rest"]
+  where sFrms = ["cons", "define", "equal?", "atom?", "car", "lambda", "if", "quote", "cdr", "cond"]

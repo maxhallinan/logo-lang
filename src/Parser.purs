@@ -61,6 +61,8 @@ symbol = annotate $ do
       pure $ E.SFrm E.Car
     "cdr" ->
       pure $ E.SFrm E.Cdr
+    "cond" ->
+      pure $ E.SFrm E.Cond
     "cons" ->
       pure $ E.SFrm E.Cons
     "define" ->
