@@ -4,6 +4,10 @@ module ExprAnn
   , Expr(..)
   , ExprAnn(..)
   , ExprTipe(..)
+  , isFalse
+  , isTrue
+  , mkFalse
+  , mkTrue
   , SrcLoc(..)
   , SrcSpan(..)
   , SFrm(..)
@@ -13,7 +17,7 @@ module ExprAnn
 
 import Prelude
 import Data.Foldable (intercalate)
-import Data.List (List)
+import Data.List as L
 import Data.Map (Map)
 
 data ExprAnn = ExprAnn Expr Ann
@@ -29,8 +33,8 @@ type SrcLoc = { line :: Int, column :: Int }
 data Expr
   = Sym String
   | SFrm SFrm
-  | Fn Env (List ExprAnn) ExprAnn
-  | Lst (List ExprAnn)
+  | Fn Env (L.List ExprAnn) ExprAnn
+  | Lst (L.List ExprAnn)
   | Integer Int
   | Float Number
 derive instance eqExpr :: Eq Expr
@@ -103,3 +107,16 @@ toExprTipe (ExprAnn expr _ ) =
       FloatTipe
     Integer _ ->
       IntegerTipe
+
+mkTrue :: Ann -> ExprAnn
+mkTrue ann = ExprAnn (Sym "#t") ann
+
+isTrue :: ExprAnn -> Boolean
+isTrue (ExprAnn (Lst L.Nil) _) = false
+isTrue _ = true
+
+mkFalse :: Ann -> ExprAnn
+mkFalse ann = ExprAnn (Lst L.Nil) ann
+
+isFalse :: ExprAnn -> Boolean
+isFalse = not <<< isTrue

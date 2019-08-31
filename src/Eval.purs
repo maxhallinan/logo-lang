@@ -18,7 +18,7 @@ import Control.Monad.State as S
 import Control.Monad.State.Trans (StateT, runStateT, withStateT)
 import Control.Monad.State.Class (class MonadState)
 import Data.Either (Either)
-import Data.Foldable (length)
+import Data.Foldable (all, length)
 import Data.Identity (Identity)
 import Data.List as L
 import Data.Map as M
@@ -26,7 +26,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
-import ExprAnn (Ann, Env, Expr(..), ExprAnn(..), ExprTipe(..), SFrm(..), SrcSpan, sfrmNumArgs, toExprTipe)
+import ExprAnn (Ann, Env, Expr(..), ExprAnn(..), ExprTipe(..), SFrm(..), SrcSpan, isTrue, mkFalse, mkTrue, sfrmNumArgs, toExprTipe)
 
 type Eval res = EvalT Identity Env res
 
@@ -285,23 +285,41 @@ evalIsEq :: Ann -> Args -> Eval ExprAnn
 evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
   ExprAnn x _ <- eval e1
   ExprAnn y _ <- eval e2
-  case Tuple x y of
-    Tuple (Float n1) (Float n2) ->
-      if n1 == n2
-      then pure $ ExprAnn (Sym "true") ann
-      else pure $ ExprAnn (Lst L.Nil) ann
-    Tuple (Integer n1) (Integer n2) ->
-      if n1 == n2
-      then pure $ ExprAnn (Sym "true") ann
-      else pure $ ExprAnn (Lst L.Nil) ann
-    Tuple (Sym name1) (Sym name2) ->
-      if name1 == name2
-      then pure $ ExprAnn (Sym "true") ann
-      else pure $ ExprAnn (Lst L.Nil) ann
-    Tuple (Lst L.Nil) (Lst L.Nil) ->
-      pure $ ExprAnn (Sym "true") ann
-    _ ->
-      pure $ ExprAnn (Lst L.Nil) ann
+  evalIsEqExpr x y
+  where
+    t = mkTrue ann
+    f = mkFalse ann
+    evalIsEqExpr :: Expr -> Expr -> Eval ExprAnn
+    evalIsEqExpr x y = do
+      case Tuple x y of
+        Tuple (Float n1) (Float n2) ->
+          if n1 == n2
+          then pure t
+          else pure f
+        Tuple (Integer n1) (Integer n2) ->
+          if n1 == n2
+          then pure t
+          else pure f
+        Tuple (Sym name1) (Sym name2) ->
+          if name1 == name2
+          then pure t
+          else pure f
+        Tuple (Lst L.Nil) (Lst L.Nil) ->
+          pure t
+        Tuple (Lst xs) (Lst ys) ->
+          evalIsEqLst xs ys
+        _ ->
+          pure f
+    evalIsEqLst :: L.List ExprAnn -> L.List ExprAnn -> Eval ExprAnn
+    evalIsEqLst xs ys = do
+      equalities <- traverse evalIsEqExprPair (L.zip xs ys)
+      let isNotEmpty = not $ L.null equalities
+      let isAllEqual = all isTrue equalities
+      if isNotEmpty && isAllEqual
+      then pure t
+      else pure f
+    evalIsEqExprPair :: Tuple ExprAnn ExprAnn -> Eval ExprAnn
+    evalIsEqExprPair (Tuple (ExprAnn x _) (ExprAnn y _)) = evalIsEqExpr x y
 evalIsEq ann args = throwSFrmNumArgsErr ann IsEq args
 
 evalLambda :: Ann -> Args -> Eval ExprAnn
