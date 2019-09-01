@@ -6,7 +6,6 @@ import Data.Array as A
 import Data.Either (Either)
 import Data.Foldable as F
 import Effect (Effect)
-import Eval as Eval
 import Core as Core
 import Run as Run
 
@@ -24,7 +23,7 @@ runFromJs = run' >>> showResults
 
 runInSharedEnv
   :: forall a
-   . (Core.Env -> String -> Eval.ResultWithEnv Run.RunErr a)
+   . (Core.Env -> String -> Core.ResultWithEnv Run.RunErr a)
   -> Core.Env
   -> Array (JsInput String)
   -> { env :: Core.Env, results :: Array (JsOutput a) }

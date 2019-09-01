@@ -1,11 +1,5 @@
 module Eval
-  ( ErrTipe(..)
-  , Eval
-  , EvalErr(..)
-  , EvalT
-  , Result
-  , ResultWithEnv
-  , evalMany
+  ( evalMany
   , evalOne
   ) where
 
@@ -17,7 +11,30 @@ import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.State as S
 import Control.Monad.State.Trans (StateT, runStateT, withStateT)
 import Control.Monad.State.Class (class MonadState)
-import Core (Ann, Env, Expr(..), ExprAnn(..), ExprTipe(..), SFrm(..), SrcSpan, isTrue, mkFalse, mkTrue, sfrmNumArgs, toExprTipe)
+import Core 
+  ( Ann
+  , Env
+  , ErrTipe(..)
+  , Expr(..)
+  , ExprAnn(..)
+  , ExprTipe(..)
+  , Eval
+  , EvalErr(..)
+  , EvalState(..)
+  , EvalT(..)
+  , Result
+  , SFrm(..)
+  , SrcSpan
+  , isTrue
+  , getEnv
+  , mkFalse
+  , mkTrue
+  , runEval
+  , sfrmNumArgs
+  , throw
+  , toExprTipe
+  , updateEnv
+  )
 import Data.Either (Either)
 import Data.Foldable (all, length)
 import Data.Identity (Identity)
@@ -27,32 +44,6 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
-
-type Eval res = EvalT Identity Env res
-
-newtype EvalT m env res = EvalT (ExceptT EvalErr (StateT (EvalState env) m) res)
-
-derive instance newtypeEvalT :: Newtype (EvalT m e r) _
-derive newtype instance functorEvalT :: Functor m => Functor (EvalT m e)
-derive newtype instance applyEvalT :: Monad m => Apply (EvalT m e)
-derive newtype instance applicativeEvalT :: Monad m => Applicative (EvalT m e)
-derive newtype instance bindEvalT :: Monad m => Bind (EvalT m e)
-derive newtype instance monadParserT :: Monad m => Monad (EvalT m e)
-derive newtype instance monadRecParserT :: MonadRec m => MonadRec (EvalT m e)
-derive newtype instance monadStateParserT :: Monad m => MonadState (EvalState e) (EvalT m e)
-derive newtype instance monadErrorParserT :: Monad m => MonadError EvalErr (EvalT m e)
-derive newtype instance monadThrowParserT :: Monad m => MonadThrow EvalErr (EvalT m e)
-
-data EvalErr = EvalErr ErrTipe SrcSpan
-
-data ErrTipe
-  = NumArgs { expected :: Int, received :: Int }
-  | WrongTipe { expected :: ExprTipe, received :: ExprTipe }
-  | LstLength { expected :: Int, received :: Int }
-  | UnknownVar { varName :: String }
-  | EmptyFnApplication
-  | UnknownErr
-  | TrueCondClauseNotFound
 
 numArgsErr :: Int -> Int -> ErrTipe
 numArgsErr expected received = NumArgs { expected, received }
@@ -146,56 +137,12 @@ throwTrueCondClauseNotFound
   -> EvalT m e a
 throwTrueCondClauseNotFound ann = throw ann trueCondClauseNotFound
 
-instance showEvalErr :: Show EvalErr where
-  show (EvalErr errTipe _) =
-    case errTipe of
-      NumArgs _ ->
-        "wrong number of arguments"
-      WrongTipe _ ->
-        "wrong type"
-      LstLength ctx ->
-        "wrong list length " <> (show $ ctx.received)
-      UnknownVar { varName } ->
-        "unknown identifier " <> varName
-      EmptyFnApplication ->
-        "empty list in function application position"
-      UnknownErr ->
-        "unknown error"
-      TrueCondClauseNotFound ->
-        "cond found no true predicates. Add an `else` clause at the end."
-
-throw :: forall m e a. Monad m => Ann -> ErrTipe -> EvalT m e a
-throw ann name = throwError $ EvalErr name ann.srcSpan
-
-newtype EvalState env = EvalState { env :: env }
-derive instance evalStateNewtype :: Newtype (EvalState a) _
-
-getEnv :: forall m e. Monad m => EvalT m e e
-getEnv = S.get >>= (unwrap >>> _.env >>> pure)
-
-updateEnv :: forall m. Monad m => String -> ExprAnn -> EvalT m Env Unit
-updateEnv key val = do
-  evalState <- unwrap <$> S.get
-  S.put $ EvalState (evalState { env = M.insert key val evalState.env })
-
-type Result a = ResultWithEnv EvalErr a
-
-type ResultWithEnv a b = { env :: Env, result :: Either a b }
-
 evalMany :: Env -> L.List ExprAnn -> Identity (Result (L.List ExprAnn))
 evalMany env = runEval env <<< sequence <<< map eval
 
 evalOne :: Env -> ExprAnn -> Identity (Result ExprAnn)
 evalOne env = runEval env <<< eval
 
-runEval :: forall a. Env -> Eval a -> Identity (Result a)
-runEval env evaled = resultWithEnv <$> rn evaled evalState
-  where
-    evalState = EvalState { env: env }
-    rn = runStateT <<< runExceptT <<< unwrap
-
-resultWithEnv :: forall a. Tuple (Either EvalErr a) (EvalState Env) -> Result a
-resultWithEnv (Tuple result (EvalState { env })) = { env, result }
 
 eval :: ExprAnn -> Eval ExprAnn
 eval exprAnn@(ExprAnn expr ann) =

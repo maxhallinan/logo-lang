@@ -10,30 +10,30 @@ import Core as Core
 import Eval as Eval
 import Parser as Parser
 
-type Result a = Eval.ResultWithEnv RunErr a
+type Result a = Core.ResultWithEnv RunErr a
 
 data RunErr
   = ParseErr Parser.ParseErr
-  | EvalErr Eval.EvalErr
+  | EvalErr Core.EvalErr
 
 instance showRunErr :: Show RunErr where
   show (ParseErr parseErr) = show parseErr
   show (EvalErr evalErr) = show evalErr
 
-runOne :: Core.Env -> String -> Eval.ResultWithEnv RunErr Core.ExprAnn
+runOne :: Core.Env -> String -> Core.ResultWithEnv RunErr Core.ExprAnn
 runOne = run Parser.parseOne Eval.evalOne
 
-runMany :: Core.Env -> String -> Eval.ResultWithEnv RunErr (List Core.ExprAnn)
+runMany :: Core.Env -> String -> Core.ResultWithEnv RunErr (List Core.ExprAnn)
 runMany = run Parser.parseMany Eval.evalMany
 
 run
   :: forall m a
    . Comonad m
   => (String -> Either Parser.ParseErr a)
-  -> (Core.Env -> a -> m (Eval.Result a))
+  -> (Core.Env -> a -> m (Core.Result a))
   -> Core.Env
   -> String
-  -> Eval.ResultWithEnv RunErr a
+  -> Core.ResultWithEnv RunErr a
 run parse eval initEnv = parse >>> either failWithParseErr evalWithEnv
   where
     failWithParseErr parseErr =
