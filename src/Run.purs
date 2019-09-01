@@ -6,7 +6,7 @@ import Control.Comonad (class Comonad, extract)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either)
 import Data.List (List)
-import ExprAnn as ExprAnn
+import Core as Core
 import Eval as Eval
 import Parser as Parser
 
@@ -20,18 +20,18 @@ instance showRunErr :: Show RunErr where
   show (ParseErr parseErr) = show parseErr
   show (EvalErr evalErr) = show evalErr
 
-runOne :: ExprAnn.Env -> String -> Eval.ResultWithEnv RunErr ExprAnn.ExprAnn
+runOne :: Core.Env -> String -> Eval.ResultWithEnv RunErr Core.ExprAnn
 runOne = run Parser.parseOne Eval.evalOne
 
-runMany :: ExprAnn.Env -> String -> Eval.ResultWithEnv RunErr (List ExprAnn.ExprAnn)
+runMany :: Core.Env -> String -> Eval.ResultWithEnv RunErr (List Core.ExprAnn)
 runMany = run Parser.parseMany Eval.evalMany
 
 run
   :: forall m a
    . Comonad m
   => (String -> Either Parser.ParseErr a)
-  -> (ExprAnn.Env -> a -> m (Eval.Result a))
-  -> ExprAnn.Env
+  -> (Core.Env -> a -> m (Eval.Result a))
+  -> Core.Env
   -> String
   -> Eval.ResultWithEnv RunErr a
 run parse eval initEnv = parse >>> either failWithParseErr evalWithEnv

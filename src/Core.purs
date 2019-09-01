@@ -1,4 +1,4 @@
-module ExprAnn
+module Core
   ( Ann(..)
   , Env
   , Expr(..)
@@ -16,6 +16,7 @@ module ExprAnn
   ) where
 
 import Prelude
+
 import Data.Foldable (intercalate)
 import Data.List as L
 import Data.Map (Map)
@@ -54,7 +55,7 @@ data SFrm
   = Car
   | Cdr
   | Cond
-  | Cons
+  | Conz
   | If
   | Def
   | IsAtm
@@ -67,7 +68,7 @@ instance showSFrm :: Show SFrm where
   show Car = "car"
   show Cdr = "cdr"
   show Cond = "cond"
-  show Cons = "cons"
+  show Conz = "cons"
   show If = "if"
   show Def = "define"
   show IsAtm = "atom?"
@@ -77,7 +78,7 @@ instance showSFrm :: Show SFrm where
 
 sfrmNumArgs :: SFrm -> Int
 sfrmNumArgs Cond = 1
-sfrmNumArgs Cons = 2
+sfrmNumArgs Conz = 2
 sfrmNumArgs Def = 1
 sfrmNumArgs Car = 1
 sfrmNumArgs If = 3

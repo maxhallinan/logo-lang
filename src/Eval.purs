@@ -17,6 +17,7 @@ import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.State as S
 import Control.Monad.State.Trans (StateT, runStateT, withStateT)
 import Control.Monad.State.Class (class MonadState)
+import Core (Ann, Env, Expr(..), ExprAnn(..), ExprTipe(..), SFrm(..), SrcSpan, isTrue, mkFalse, mkTrue, sfrmNumArgs, toExprTipe)
 import Data.Either (Either)
 import Data.Foldable (all, length)
 import Data.Identity (Identity)
@@ -26,7 +27,6 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
-import ExprAnn (Ann, Env, Expr(..), ExprAnn(..), ExprTipe(..), SFrm(..), SrcSpan, isTrue, mkFalse, mkTrue, sfrmNumArgs, toExprTipe)
 
 type Eval res = EvalT Identity Env res
 
@@ -226,7 +226,7 @@ type Args = L.List ExprAnn
 
 evalSFrm :: Ann -> SFrm -> Args -> Eval ExprAnn
 evalSFrm ann sfrm L.Nil = throwSFrmNumArgsErr ann sfrm L.Nil
-evalSFrm ann Cons args = evalCons ann args
+evalSFrm ann Conz args = evalConz ann args
 evalSFrm ann Def args = evalDef ann args
 evalSFrm ann Car args = evalCar ann args
 evalSFrm ann If args = evalIf ann args
@@ -237,8 +237,8 @@ evalSFrm ann Quote args = evalQuote ann args
 evalSFrm ann Cdr args = evalCdr ann args
 evalSFrm ann Cond args = evalCond ann args
 
-evalCons :: Ann -> Args -> Eval ExprAnn
-evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
+evalConz :: Ann -> Args -> Eval ExprAnn
+evalConz ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
   h <- eval e1
   t <- eval e2
   case t of
@@ -246,7 +246,7 @@ evalCons ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
       pure $ ExprAnn (Lst (L.Cons h t')) ann
     _ ->
       throwWrongTipeErr ann LstTipe (toExprTipe t)
-evalCons ann args = throwSFrmNumArgsErr ann Cons args
+evalConz ann args = throwSFrmNumArgsErr ann Conz args
 
 evalDef :: Ann -> Args -> Eval ExprAnn
 evalDef ann (L.Cons e1 (L.Cons e2 L.Nil)) = do

@@ -4,12 +4,12 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Core (Expr(..), ExprAnn(..), SFrm(..))
 import Data.Either (Either)
 import Data.List (List(..), manyRec)
 import Data.String.CodeUnits (toCharArray)
-import ExprAnn as E
 import Text.Parsing.Parser as P
-import Text.Parsing.Parser.Combinators as C
+import Text.Parsing.Parser.Combinators  as C
 import Text.Parsing.Parser.Language as L
 import Text.Parsing.Parser.Pos (Position(..))
 import Text.Parsing.Parser.String as S
@@ -19,10 +19,10 @@ type Parser a = P.Parser String a
 
 type ParseErr = P.ParseError
 
-parseMany :: String -> Either P.ParseError (List E.ExprAnn)
+parseMany :: String -> Either P.ParseError (List ExprAnn)
 parseMany = flip P.runParser $ fileOf (manyOf exprAnn)
 
-parseOne :: String -> Either P.ParseError E.ExprAnn
+parseOne :: String -> Either P.ParseError ExprAnn
 parseOne = flip P.runParser $ fileOf exprAnn
 
 fileOf :: forall a. Parser a -> Parser a
@@ -31,63 +31,63 @@ fileOf = C.between lexer.whiteSpace S.eof
 manyOf :: forall a. Parser a -> Parser (List a)
 manyOf = flip C.sepBy lexer.whiteSpace
 
-exprAnn :: Parser E.ExprAnn
+exprAnn :: Parser ExprAnn
 exprAnn = fix $ \p -> number <|> symbol <|> quoted p <|> listOf p
 
-listOf :: Parser E.ExprAnn -> Parser E.ExprAnn
-listOf p = annotate $ E.Lst <$> lexer.parens (manyRec p)
+listOf :: Parser ExprAnn -> Parser ExprAnn
+listOf p = annotate $ Lst <$> lexer.parens (manyRec p)
 
-quoted :: Parser E.ExprAnn -> Parser E.ExprAnn
+quoted :: Parser ExprAnn -> Parser ExprAnn
 quoted p = annotate $ do
   _ <- S.string "'"
-  quote <- annotate $ pure (E.SFrm E.Quote)
+  quote <- annotate $ pure (SFrm Quote)
   x <- p
-  pure $ E.Lst (Cons quote (pure x))
+  pure $ Lst (Cons quote (pure x))
 
-number :: Parser E.ExprAnn
+number :: Parser ExprAnn
 number = C.try float <|> integer
 
-integer :: Parser E.ExprAnn
-integer = annotate $ map E.Integer lexer.integer
+integer :: Parser ExprAnn
+integer = annotate $ map Integer lexer.integer
 
-float :: Parser E.ExprAnn
-float = annotate $ map E.Float lexer.float
+float :: Parser ExprAnn
+float = annotate $ map Float lexer.float
 
-symbol :: Parser E.ExprAnn
+symbol :: Parser ExprAnn
 symbol = annotate $ do
   identifier <- lexer.identifier
   case identifier of
     "car" ->
-      pure $ E.SFrm E.Car
+      pure $ SFrm Car
     "cdr" ->
-      pure $ E.SFrm E.Cdr
+      pure $ SFrm Cdr
     "cond" ->
-      pure $ E.SFrm E.Cond
+      pure $ SFrm Cond
     "cons" ->
-      pure $ E.SFrm E.Cons
+      pure $ SFrm Conz
     "define" ->
-      pure $ E.SFrm E.Def
+      pure $ SFrm Def
     "equal?" ->
-      pure $ E.SFrm E.IsEq
+      pure $ SFrm IsEq
     "atom?" ->
-      pure $ E.SFrm E.IsAtm
+      pure $ SFrm IsAtm
     "lambda" ->
-      pure $ E.SFrm E.Lambda
+      pure $ SFrm Lambda
     "if" ->
-      pure $ E.SFrm E.If
+      pure $ SFrm If
     "quote" ->
-      pure $ E.SFrm E.Quote
+      pure $ SFrm Quote
     _ ->
-      pure $ E.Sym identifier
+      pure $ Sym identifier
 
-annotate :: Parser E.Expr -> Parser (E.ExprAnn)
+annotate :: Parser Expr -> Parser ExprAnn
 annotate p = do
   begin <- location
   expr <- p
   end <- location
   let srcSpan = { begin: begin, end: end }
   let ann = { srcSpan: srcSpan }
-  pure $ E.ExprAnn expr ann
+  pure $ ExprAnn expr ann
   where location = P.position >>= (pure <<< unwrapPos)
         unwrapPos (Position loc) = loc
 

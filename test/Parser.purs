@@ -3,6 +3,7 @@ module Test.Parser (spec) where
 import Prelude
 
 import Control.Lazy (fix)
+import Core (Ann, Expr(..), ExprAnn(..), SFrm(..), SrcLoc )
 import Data.Array ((:))
 import Data.Char.Gen (genAlpha, genDigitChar, genUnicodeChar)
 import Data.Either (Either(..))
@@ -12,7 +13,6 @@ import Data.NonEmpty ((:|), singleton)
 import Data.String (length)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect.Aff (Aff)
-import ExprAnn (Ann, Expr(..), ExprAnn(..), SFrm(..), SrcLoc )
 import Parser (parseMany, parseOne)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
@@ -46,7 +46,7 @@ spec = do
         it "parses cond" do
           "cond" `parsesManySFrmTo` (SFrm Cond)
         it "parses cons" do
-          "cons" `parsesManySFrmTo` (SFrm Cons)
+          "cons" `parsesManySFrmTo` (SFrm Conz)
         it "parses define" do
           "define" `parsesManySFrmTo` (SFrm Def)
         it "parses equal?" do
@@ -80,7 +80,7 @@ spec = do
         it "parses cond" do
           "cond" `parsesOneSFrmTo` (SFrm Cond)
         it "parses cons" do
-          "cons" `parsesOneSFrmTo` (SFrm Cons)
+          "cons" `parsesOneSFrmTo` (SFrm Conz)
         it "parses define" do
           "define" `parsesOneSFrmTo` (SFrm Def)
         it "parses equal?" do
