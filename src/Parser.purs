@@ -67,6 +67,8 @@ symbol = annotate $ do
       pure $ SFrm Conz
     "define" ->
       pure $ SFrm Def
+    "do" ->
+      pure $ SFrm Do
     "equal?" ->
       pure $ SFrm IsEq
     "atom?" ->

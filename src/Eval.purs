@@ -11,7 +11,7 @@ import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.State as S
 import Control.Monad.State.Trans (StateT, runStateT, withStateT)
 import Control.Monad.State.Class (class MonadState)
-import Core 
+import Core
   ( Ann
   , Env
   , ErrTipe(..)
@@ -175,6 +175,7 @@ evalSFrm :: Ann -> SFrm -> Args -> Eval ExprAnn
 evalSFrm ann sfrm L.Nil = throwSFrmNumArgsErr ann sfrm L.Nil
 evalSFrm ann Conz args = evalConz ann args
 evalSFrm ann Def args = evalDef ann args
+evalSFrm ann Do args = evalDo ann args
 evalSFrm ann Car args = evalCar ann args
 evalSFrm ann If args = evalIf ann args
 evalSFrm ann IsAtm args = evalIsAtm ann args
@@ -217,6 +218,15 @@ evalCar ann (L.Cons e L.Nil) = do
     _ ->
       throwWrongTipeErr ann LstTipe (toExprTipe expr)
 evalCar ann args = throwSFrmNumArgsErr ann Car args
+
+evalDo :: Ann -> Args -> Eval ExprAnn
+evalDo ann args = do
+  results <- traverse eval args
+  case L.last results of
+    Nothing ->
+      throwSFrmNumArgsErr ann Do L.Nil
+    Just e ->
+      pure e
 
 evalIf :: Ann -> Args -> Eval ExprAnn
 evalIf ann (L.Cons p (L.Cons e1 (L.Cons e2 L.Nil))) = do

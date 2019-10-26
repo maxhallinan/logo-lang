@@ -148,8 +148,9 @@ data SFrm
   | Cdr
   | Cond
   | Conz
-  | If
   | Def
+  | Do
+  | If
   | IsAtm
   | IsEq
   | Lambda
@@ -163,6 +164,7 @@ instance showSFrm :: Show SFrm where
   show Conz = "cons"
   show If = "if"
   show Def = "define"
+  show Do = "do"
   show IsAtm = "atom?"
   show IsEq = "equal?"
   show Lambda = "lambda"
@@ -172,6 +174,7 @@ sfrmNumArgs :: SFrm -> Int
 sfrmNumArgs Cond = 1
 sfrmNumArgs Conz = 2
 sfrmNumArgs Def = 1
+sfrmNumArgs Do = 1
 sfrmNumArgs Car = 1
 sfrmNumArgs If = 3
 sfrmNumArgs IsAtm = 1

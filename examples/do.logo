@@ -1,0 +1,8 @@
+(do (cons 'a '()))
+
+(do (cons 'a '()) 
+    (cons 'b '()))
+
+(do (cons 'a '()) 
+    (cons 'b '()) 
+    (cons 'c '()))
