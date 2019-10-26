@@ -36,13 +36,12 @@ import Control.Monad.State.Trans (StateT, runStateT)
 import Control.Monad.State.Class (class MonadState)
 import Data.Either (Either)
 import Data.Foldable (intercalate)
-import Data.Identity (Identity)
 import Data.List as L
 import Data.Map as M
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple (Tuple(..))
 
-type Eval res = EvalT Identity Env res
+type Eval m res = EvalT m Env res
 
 newtype EvalT m env res = EvalT (ExceptT EvalErr (StateT (EvalState env) m) res)
 
@@ -61,7 +60,7 @@ type Result a = ResultWithEnv EvalErr a
 
 type ResultWithEnv a b = { env :: Env, result :: Either a b }
 
-runEval :: forall a. Env -> Eval a -> Identity (Result a)
+runEval :: forall m a. Monad m => Env -> Eval m a -> m (Result a)
 runEval env evaled = resultWithEnv <$> rn evaled evalState
   where
     evalState = EvalState { env: env }

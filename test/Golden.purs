@@ -2,12 +2,12 @@ module Test.Golden where
 
 import Prelude
 
-import Data.Either (either)
+import Data.Either (Either(..))
 import Data.Foldable (intercalate)
 import Data.Traversable (sequence, traverse)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
-import Run as Run
+import Interpret (interpretMany)
 import Node.Encoding as Enc
 import Node.FS.Aff (exists, readdir, readTextFile, writeTextFile)
 import Node.Path as Path
@@ -60,10 +60,13 @@ testFile { path, result } = goldenVsString testName goldenPath result
 evalFile
   :: { file :: String, path :: Path.FilePath }
   -> Aff { path :: Path.FilePath, result :: String }
-evalFile { file, path } = pure $ { path: path, result: run file }
-  where showErr = show
-        showRes = intercalate "\n" <<< map show
-        run = either showErr showRes <<< _.result <<< Run.runMany mempty
+evalFile { file, path } = do
+  result <- interpretMany mempty file
+  case result of
+    Left e ->
+      pure { path, result: show e }
+    Right r ->
+      pure { path, result: intercalate "\n" (map show r) }
 
 type DirName = String
 

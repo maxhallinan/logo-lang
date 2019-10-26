@@ -1,16 +1,13 @@
 module Eval
-  ( evalMany
-  , evalOne
+  ( eval
+  , runMany
+  , runOne
   ) where
 
 import Prelude
 
-import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
-import Control.Monad.Except.Trans (ExceptT, runExceptT, mapExceptT)
-import Control.Monad.Rec.Class (class MonadRec)
-import Control.Monad.State as S
-import Control.Monad.State.Trans (StateT, runStateT, withStateT)
-import Control.Monad.State.Class (class MonadState)
+import Control.Monad.Except.Trans (mapExceptT)
+import Control.Monad.State.Trans (withStateT)
 import Core
   ( Ann
   , Env
@@ -19,12 +16,10 @@ import Core
   , ExprAnn(..)
   , ExprTipe(..)
   , Eval
-  , EvalErr(..)
   , EvalState(..)
   , EvalT(..)
   , Result
   , SFrm(..)
-  , SrcSpan
   , isTrue
   , getEnv
   , mkFalse
@@ -35,13 +30,11 @@ import Core
   , toExprTipe
   , updateEnv
   )
-import Data.Either (Either)
 import Data.Foldable (all, length)
-import Data.Identity (Identity)
 import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (unwrap)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
 
@@ -137,14 +130,23 @@ throwTrueCondClauseNotFound
   -> EvalT m e a
 throwTrueCondClauseNotFound ann = throw ann trueCondClauseNotFound
 
-evalMany :: Env -> L.List ExprAnn -> Identity (Result (L.List ExprAnn))
-evalMany env = runEval env <<< sequence <<< map eval
+runMany
+  :: forall m
+   . Monad m
+  => Env
+  -> L.List ExprAnn
+  -> m (Result (L.List ExprAnn))
+runMany env = runEval env <<< sequence <<< map eval
 
-evalOne :: Env -> ExprAnn -> Identity (Result ExprAnn)
-evalOne env = runEval env <<< eval
+runOne
+  :: forall m
+   . Monad m
+  => Env
+  -> ExprAnn
+  -> m (Result ExprAnn)
+runOne env = runEval env <<< eval
 
-
-eval :: ExprAnn -> Eval ExprAnn
+eval :: forall m. Monad m => ExprAnn -> Eval m ExprAnn
 eval exprAnn@(ExprAnn expr ann) =
   case expr of
     (Sym name) ->
@@ -160,7 +162,7 @@ eval exprAnn@(ExprAnn expr ann) =
     _ ->
       throwUnknownErr ann
 
-evalSym :: Ann -> String -> Eval ExprAnn
+evalSym :: forall m. Monad m => Ann -> String -> Eval m ExprAnn
 evalSym ann name = do
   env <- getEnv
   case M.lookup name env of
@@ -171,7 +173,7 @@ evalSym ann name = do
 
 type Args = L.List ExprAnn
 
-evalSFrm :: Ann -> SFrm -> Args -> Eval ExprAnn
+evalSFrm :: forall m. Monad m => Ann -> SFrm -> Args -> Eval m ExprAnn
 evalSFrm ann sfrm L.Nil = throwSFrmNumArgsErr ann sfrm L.Nil
 evalSFrm ann Conz args = evalConz ann args
 evalSFrm ann Def args = evalDef ann args
@@ -185,7 +187,7 @@ evalSFrm ann Quote args = evalQuote ann args
 evalSFrm ann Cdr args = evalCdr ann args
 evalSFrm ann Cond args = evalCond ann args
 
-evalConz :: Ann -> Args -> Eval ExprAnn
+evalConz :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalConz ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
   h <- eval e1
   t <- eval e2
@@ -196,7 +198,7 @@ evalConz ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
       throwWrongTipeErr ann LstTipe (toExprTipe t)
 evalConz ann args = throwSFrmNumArgsErr ann Conz args
 
-evalDef :: Ann -> Args -> Eval ExprAnn
+evalDef :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalDef ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
   val <- eval e2
   case e1 of
@@ -207,7 +209,7 @@ evalDef ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
       throwWrongTipeErr ann SymTipe (toExprTipe e1)
 evalDef ann args = throwSFrmNumArgsErr ann Def args
 
-evalCar :: Ann -> Args -> Eval ExprAnn
+evalCar :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalCar ann (L.Cons e L.Nil) = do
   expr@(ExprAnn xs _) <- eval e
   case xs of
@@ -219,7 +221,7 @@ evalCar ann (L.Cons e L.Nil) = do
       throwWrongTipeErr ann LstTipe (toExprTipe expr)
 evalCar ann args = throwSFrmNumArgsErr ann Car args
 
-evalDo :: Ann -> Args -> Eval ExprAnn
+evalDo :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalDo ann args = do
   results <- traverse eval args
   case L.last results of
@@ -228,7 +230,7 @@ evalDo ann args = do
     Just e ->
       pure e
 
-evalIf :: Ann -> Args -> Eval ExprAnn
+evalIf :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalIf ann (L.Cons p (L.Cons e1 (L.Cons e2 L.Nil))) = do
   p' <- eval p
   if isTrue p'
@@ -236,7 +238,7 @@ evalIf ann (L.Cons p (L.Cons e1 (L.Cons e2 L.Nil))) = do
   else eval e2
 evalIf ann args = throwSFrmNumArgsErr ann If args
 
-evalIsAtm :: Ann -> Args -> Eval ExprAnn
+evalIsAtm :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalIsAtm ann (L.Cons e L.Nil) = do
   ExprAnn x _ <- eval e
   case x of
@@ -253,7 +255,7 @@ evalIsAtm ann (L.Cons e L.Nil) = do
     f = mkFalse ann
 evalIsAtm ann args = throwSFrmNumArgsErr ann IsAtm args
 
-evalIsEq :: Ann -> Args -> Eval ExprAnn
+evalIsEq :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
   ExprAnn x _ <- eval e1
   ExprAnn y _ <- eval e2
@@ -261,7 +263,7 @@ evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
   where
     t = mkTrue ann
     f = mkFalse ann
-    evalIsEqExpr :: Expr -> Expr -> Eval ExprAnn
+    evalIsEqExpr :: Expr -> Expr -> Eval m ExprAnn
     evalIsEqExpr x y = do
       case Tuple x y of
         Tuple (Float n1) (Float n2) ->
@@ -282,7 +284,7 @@ evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
           evalIsEqLst xs ys
         _ ->
           pure f
-    evalIsEqLst :: L.List ExprAnn -> L.List ExprAnn -> Eval ExprAnn
+    evalIsEqLst :: L.List ExprAnn -> L.List ExprAnn -> Eval m ExprAnn
     evalIsEqLst xs ys = do
       equalities <- traverse evalIsEqExprPair (L.zip xs ys)
       let isNotEmpty = not $ L.null equalities
@@ -290,11 +292,11 @@ evalIsEq ann (L.Cons e1 (L.Cons e2 L.Nil)) = do
       if isNotEmpty && isAllEqual
       then pure t
       else pure f
-    evalIsEqExprPair :: Tuple ExprAnn ExprAnn -> Eval ExprAnn
+    evalIsEqExprPair :: Tuple ExprAnn ExprAnn -> Eval m ExprAnn
     evalIsEqExprPair (Tuple (ExprAnn x _) (ExprAnn y _)) = evalIsEqExpr x y
 evalIsEq ann args = throwSFrmNumArgsErr ann IsEq args
 
-evalLambda :: Ann -> Args -> Eval ExprAnn
+evalLambda :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalLambda ann (L.Cons params (L.Cons body L.Nil)) = do
   case params of
     ExprAnn (Lst params') _ -> do
@@ -304,11 +306,11 @@ evalLambda ann (L.Cons params (L.Cons body L.Nil)) = do
       throwWrongTipeErr ann LstTipe (toExprTipe params)
 evalLambda ann args = throwSFrmNumArgsErr ann Lambda args
 
-evalQuote :: Ann -> Args -> Eval ExprAnn
+evalQuote :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalQuote ann (L.Cons expr L.Nil) = pure $ expr
 evalQuote ann args = throwSFrmNumArgsErr ann Quote args
 
-evalCdr :: Ann -> Args -> Eval ExprAnn
+evalCdr :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalCdr ann (L.Cons e L.Nil) = do
   xs'@(ExprAnn xs _) <- eval e
   case xs of
@@ -319,11 +321,11 @@ evalCdr ann (L.Cons e L.Nil) = do
     _ -> throwWrongTipeErr ann LstTipe (toExprTipe xs')
 evalCdr ann args = throwSFrmNumArgsErr ann Cdr args
 
-evalCond :: Ann -> Args -> Eval ExprAnn
+evalCond :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalCond ann L.Nil = throwSFrmNumArgsErr ann Cond L.Nil
 evalCond ann clauses = go clauses
   where
-    go :: Args -> Eval ExprAnn
+    go :: Args -> Eval m ExprAnn
     go (L.Cons (ExprAnn (Lst (L.Cons predicate (L.Cons consequent L.Nil))) _) rest) = do
       p <- isTrue <$> eval predicate
       if p
@@ -333,7 +335,7 @@ evalCond ann clauses = go clauses
     go (L.Cons expr _) = throwWrongTipeErr ann LstTipe (toExprTipe expr)
     go L.Nil = throwTrueCondClauseNotFound ann
 
-evalLst :: Ann -> Args -> Eval ExprAnn
+evalLst :: forall m. Monad m => Ann -> Args -> Eval m ExprAnn
 evalLst ann (L.Cons x xs) = do
   expr@(ExprAnn fn _) <- eval x
   args <- traverse eval xs
@@ -344,24 +346,24 @@ evalLst ann (L.Cons x xs) = do
       throwWrongTipeErr ann FnTipe (toExprTipe expr)
 evalLst ann L.Nil = throwEmptyFnApplicationErr ann
 
-applyLambda :: Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> ExprAnn -> Eval ExprAnn
+applyLambda :: forall m. Monad m => Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> ExprAnn -> Eval m ExprAnn
 applyLambda ann localEnv params args body = do
   env <- bindArgs ann localEnv params args
   let evalState = EvalState { env: env }
   EvalT $ mapExceptT (withStateT $ const evalState) (unwrap $ eval body)
 
-bindArgs :: Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> Eval Env
+bindArgs :: forall m. Monad m => Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> Eval m Env
 bindArgs ann localEnv params args = do
   env <- getEnv
   bindings <- sequence (L.zipWith toBinding params args)
   pure $ M.fromFoldable bindings <> localEnv <> env
   where
-    toBinding :: ExprAnn -> ExprAnn -> Eval (Tuple String ExprAnn)
+    toBinding :: ExprAnn -> ExprAnn -> Eval m (Tuple String ExprAnn)
     toBinding param arg = do
       paramName <- toParamName param
       pure $ Tuple paramName arg
 
-    toParamName :: ExprAnn -> Eval String
+    toParamName :: ExprAnn -> Eval m String
     toParamName expr@(ExprAnn param _) =
       case param of
         Sym name ->
