@@ -1,5 +1,6 @@
 module Core
   ( Ann(..)
+  , Bindings(..)
   , Env
   , ErrTipe(..)
   , Expr(..)
@@ -9,13 +10,12 @@ module Core
   , EvalErr(..)
   , EvalState(..)
   , EvalT(..)
+  , PrimFns(..)
   , getEnv
   , isFalse
   , isTrue
   , mkFalse
   , mkTrue
-  , Result
-  , ResultWithEnv
   , runEval
   , SrcLoc(..)
   , SrcSpan(..)
@@ -36,38 +36,44 @@ import Control.Monad.State.Trans (StateT, runStateT)
 import Control.Monad.State.Class (class MonadState)
 import Data.Either (Either)
 import Data.Foldable (intercalate)
+import Data.List (List)
 import Data.List as L
+import Data.Map (Map)
 import Data.Map as M
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple (Tuple(..))
 
-type Eval m res = EvalT m Env res
+type Eval m = EvalT (Bindings (PrimFns m)) m
 
-newtype EvalT m env res = EvalT (ExceptT EvalErr (StateT (EvalState env) m) res)
+newtype EvalT bindings m a = EvalT (ExceptT EvalErr (StateT (EvalState bindings) m) a)
 
-derive instance newtypeEvalT :: Newtype (EvalT m e r) _
-derive newtype instance functorEvalT :: Functor m => Functor (EvalT m e)
-derive newtype instance applyEvalT :: Monad m => Apply (EvalT m e)
-derive newtype instance applicativeEvalT :: Monad m => Applicative (EvalT m e)
-derive newtype instance bindEvalT :: Monad m => Bind (EvalT m e)
-derive newtype instance monadParserT :: Monad m => Monad (EvalT m e)
-derive newtype instance monadRecParserT :: MonadRec m => MonadRec (EvalT m e)
-derive newtype instance monadStateParserT :: Monad m => MonadState (EvalState e) (EvalT m e)
-derive newtype instance monadErrorParserT :: Monad m => MonadError EvalErr (EvalT m e)
-derive newtype instance monadThrowParserT :: Monad m => MonadThrow EvalErr (EvalT m e)
+derive instance newtypeEvalT :: Newtype (EvalT r m a) _
+derive newtype instance functorEvalT :: Functor m => Functor (EvalT r m)
+derive newtype instance applyEvalT :: Monad m => Apply (EvalT r m)
+derive newtype instance applicativeEvalT :: Monad m => Applicative (EvalT r m)
+derive newtype instance bindEvalT :: Monad m => Bind (EvalT r m)
+derive newtype instance monadEvalT :: Monad m => Monad (EvalT r m)
+derive newtype instance monadRecEvalT :: MonadRec m => MonadRec (EvalT r m)
+derive newtype instance monadStateEvalT :: Monad m => MonadState (EvalState r) (EvalT r m)
+derive newtype instance monadErrorEvalT :: Monad m => MonadError EvalErr (EvalT r m)
+derive newtype instance monadThrowEvalT :: Monad m => MonadThrow EvalErr (EvalT r m)
 
-type Result a = ResultWithEnv EvalErr a
-
-type ResultWithEnv a b = { env :: Env, result :: Either a b }
-
-runEval :: forall m a. Monad m => Env -> Eval m a -> m (Result a)
-runEval env evaled = resultWithEnv <$> rn evaled evalState
+runEval
+  :: forall m a
+   . Monad m
+  => Bindings (PrimFns m)
+  -> Eval m a
+  -> m (Tuple (Either EvalErr a) (Bindings (PrimFns m)))
+runEval bindings evaled = resultWithEnv <$> rn evaled evalState
   where
-    evalState = EvalState { env: env }
+    evalState = EvalState { bindings }
     rn = runStateT <<< runExceptT <<< unwrap
 
-resultWithEnv :: forall a. Tuple (Either EvalErr a) (EvalState Env) -> Result a
-resultWithEnv (Tuple result (EvalState { env })) = { env, result }
+resultWithEnv
+  :: forall a bindings
+   . Tuple a (EvalState bindings)
+  -> Tuple a bindings
+resultWithEnv (Tuple x (EvalState { bindings })) = Tuple x bindings
 
 data EvalErr = EvalErr ErrTipe SrcSpan
 
@@ -89,7 +95,7 @@ instance showEvalErr :: Show EvalErr where
       TrueCondClauseNotFound ->
         "cond found no true predicates. Add an `else` clause at the end."
 
-throw :: forall m e a. Monad m => Ann -> ErrTipe -> EvalT m e a
+throw :: forall r m a. Monad m => Ann -> ErrTipe -> EvalT r m a
 throw ann name = throwError $ EvalErr name ann.srcSpan
 
 data ErrTipe
@@ -101,16 +107,17 @@ data ErrTipe
   | UnknownErr
   | TrueCondClauseNotFound
 
-newtype EvalState env = EvalState { env :: env }
+newtype EvalState bindings = EvalState { bindings :: bindings }
+
 derive instance evalStateNewtype :: Newtype (EvalState a) _
 
-getEnv :: forall m e. Monad m => EvalT m e e
-getEnv = S.get >>= (unwrap >>> _.env >>> pure)
+getEnv :: forall r m. Monad m => EvalT (Bindings r) m Env
+getEnv = S.get >>= (unwrap >>> _.bindings >>> unwrap >>> _.env >>> pure)
 
-updateEnv :: forall m. Monad m => String -> ExprAnn -> EvalT m Env Unit
-updateEnv key val = do
-  evalState <- unwrap <$> S.get
-  S.put $ EvalState (evalState { env = M.insert key val evalState.env })
+updateEnv :: forall m. Monad m => String -> ExprAnn -> EvalT (Bindings (PrimFns m)) m Unit
+updateEnv key val =
+  S.modify_ \(EvalState s@({ bindings: Bindings b })) ->
+    EvalState $ s { bindings = Bindings b { env = M.insert key val b.env } }
 
 data ExprAnn = ExprAnn Expr Ann
 derive instance exprAnnEq :: Eq ExprAnn
@@ -125,8 +132,8 @@ type SrcLoc = { line :: Int, column :: Int }
 data Expr
   = Sym String
   | SFrm SFrm
-  | Fn Env (L.List ExprAnn) ExprAnn
-  | Lst (L.List ExprAnn)
+  | Fn Env (List ExprAnn) ExprAnn
+  | Lst (List ExprAnn)
   | Integer Int
   | Float Number
 derive instance eqExpr :: Eq Expr
@@ -140,7 +147,26 @@ instance showExpr :: Show Expr where
   show (Lst exprs) = "(" <> exprs' <> ")"
     where exprs' = intercalate " " $ map show exprs
 
-type Env = M.Map String ExprAnn
+type Env = Map String ExprAnn
+
+newtype Bindings primFns = Bindings
+  { env :: Env
+  , primFns :: primFns
+  }
+
+derive instance newtypeBindings :: Newtype (Bindings a) _
+
+derive newtype instance semigroupBindings :: Semigroup a => Semigroup (Bindings a)
+
+derive newtype instance monoidBindings :: Monoid a => Monoid (Bindings a)
+
+newtype PrimFns m = PrimFns (Map String (forall a. List ExprAnn -> Eval m a))
+
+instance semigroupPrimFns :: Semigroup (PrimFns m) where
+  append (PrimFns p1) (PrimFns p2) = PrimFns (p1 <> p2)
+
+instance monoidPrimFns :: Monoid (PrimFns m) where
+  mempty = PrimFns mempty
 
 data SFrm
   = Car

@@ -1,15 +1,13 @@
-module Eval
-  ( eval
-  , runMany
-  , runOne
-  ) where
+module Eval (eval) where
 
 import Prelude
 
 import Control.Monad.Except.Trans (mapExceptT)
 import Control.Monad.State.Trans (withStateT)
+import Control.Monad.State.Trans as S
 import Core
   ( Ann
+  , Bindings(..)
   , Env
   , ErrTipe(..)
   , Expr(..)
@@ -18,13 +16,12 @@ import Core
   , Eval
   , EvalState(..)
   , EvalT(..)
-  , Result
+  , PrimFns
   , SFrm(..)
   , isTrue
   , getEnv
   , mkFalse
   , mkTrue
-  , runEval
   , sfrmNumArgs
   , throw
   , toExprTipe
@@ -42,22 +39,22 @@ numArgsErr :: Int -> Int -> ErrTipe
 numArgsErr expected received = NumArgs { expected, received }
 
 throwNumArgsErr
-  :: forall m e a
+  :: forall r m a
    . Monad m
   => Ann
   -> Int
   -> Int
-  -> EvalT m e a
+  -> EvalT r m a
 throwNumArgsErr ann expected received =
   throw ann $ numArgsErr expected received
 
 throwSFrmNumArgsErr
-  :: forall m e a
+  :: forall r m a
    . Monad m
   => Ann
   -> SFrm
   -> Args
-  -> EvalT m e a
+  -> EvalT r m a
 throwSFrmNumArgsErr ann sfrm args = throwNumArgsErr ann expected received
   where expected = sfrmNumArgs sfrm
         received = length args
@@ -66,12 +63,12 @@ wrongTipeErr :: ExprTipe -> ExprTipe -> ErrTipe
 wrongTipeErr expected received = WrongTipe { expected, received }
 
 throwWrongTipeErr
-  :: forall m e a
+  :: forall r m a
    . Monad m
   => Ann
   -> ExprTipe
   -> ExprTipe
-  -> EvalT m e a
+  -> EvalT r m a
 throwWrongTipeErr ann expected received =
   throw ann $ wrongTipeErr expected received
 
@@ -79,12 +76,12 @@ lstLengthErr :: Int -> Int -> ErrTipe
 lstLengthErr expected received = LstLength { expected, received }
 
 throwLstLengthErr
-  :: forall m e a
+  :: forall r m a
    . Monad m
   => Ann
   -> Int
   -> Int
-  -> EvalT m e a
+  -> EvalT r m a
 throwLstLengthErr ann expected received =
   throw ann $ lstLengthErr expected received
 
@@ -92,11 +89,11 @@ unknownVarErr :: String -> ErrTipe
 unknownVarErr varName = UnknownVar { varName }
 
 throwUnknownVarErr
-  :: forall m e a
+  :: forall r m a
    . Monad m
   => Ann
   -> String
-  -> EvalT m e a
+  -> EvalT r m a
 throwUnknownVarErr ann varName =
   throw ann $ unknownVarErr varName
 
@@ -104,47 +101,31 @@ unknownErr :: ErrTipe
 unknownErr = UnknownErr
 
 throwUnknownErr
-  :: forall m e a
+  :: forall r m a
    . Monad m
   => Ann
-  -> EvalT m e a
+  -> EvalT r m a
 throwUnknownErr ann = throw ann unknownErr
 
 emptyFnApplicationErr :: ErrTipe
 emptyFnApplicationErr = EmptyFnApplication
 
 throwEmptyFnApplicationErr
-  :: forall m e a
+  :: forall r m a
    . Monad m
   => Ann
-  -> EvalT m e a
+  -> EvalT r m a
 throwEmptyFnApplicationErr ann = throw ann emptyFnApplicationErr
 
 trueCondClauseNotFound :: ErrTipe
 trueCondClauseNotFound = TrueCondClauseNotFound
 
 throwTrueCondClauseNotFound
-  :: forall m e a
+  :: forall r m a
    . Monad m
   => Ann
-  -> EvalT m e a
+  -> EvalT r m a
 throwTrueCondClauseNotFound ann = throw ann trueCondClauseNotFound
-
-runMany
-  :: forall m
-   . Monad m
-  => Env
-  -> L.List ExprAnn
-  -> m (Result (L.List ExprAnn))
-runMany env = runEval env <<< sequence <<< map eval
-
-runOne
-  :: forall m
-   . Monad m
-  => Env
-  -> ExprAnn
-  -> m (Result ExprAnn)
-runOne env = runEval env <<< eval
 
 eval :: forall m. Monad m => ExprAnn -> Eval m ExprAnn
 eval exprAnn@(ExprAnn expr ann) =
@@ -348,15 +329,14 @@ evalLst ann L.Nil = throwEmptyFnApplicationErr ann
 
 applyLambda :: forall m. Monad m => Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> ExprAnn -> Eval m ExprAnn
 applyLambda ann localEnv params args body = do
-  env <- bindArgs ann localEnv params args
-  let evalState = EvalState { env: env }
+  evalState <- bindArgs ann localEnv params args
   EvalT $ mapExceptT (withStateT $ const evalState) (unwrap $ eval body)
 
-bindArgs :: forall m. Monad m => Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> Eval m Env
+bindArgs :: forall m. Monad m => Ann -> Env -> L.List ExprAnn -> L.List ExprAnn -> Eval m (EvalState (Bindings (PrimFns m)))
 bindArgs ann localEnv params args = do
-  env <- getEnv
-  bindings <- sequence (L.zipWith toBinding params args)
-  pure $ M.fromFoldable bindings <> localEnv <> env
+  fnEnv <- M.fromFoldable <$> sequence (L.zipWith toBinding params args)
+  EvalState s@({ bindings: Bindings b }) <- S.get
+  pure $ EvalState $ s { bindings = Bindings $ b { env = fnEnv <> localEnv <> b.env } }
   where
     toBinding :: ExprAnn -> ExprAnn -> Eval m (Tuple String ExprAnn)
     toBinding param arg = do

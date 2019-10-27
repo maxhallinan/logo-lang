@@ -5,13 +5,15 @@ import Prelude
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.List (List)
-import Core as Core
-import Eval as Eval
-import Parser as Parser
+import Data.Traversable (traverse)
+import Data.Tuple (Tuple(..))
+import Core (Bindings, EvalErr, ExprAnn, PrimFns, runEval)
+import Eval (eval)
+import Parser (ParseErr, parseMany)
 
 data InterpretErr
-  = ParseErr Parser.ParseErr
-  | EvalErr Core.EvalErr
+  = ParseErr ParseErr
+  | EvalErr EvalErr
 
 instance showInterpretErr :: Show InterpretErr where
   show (ParseErr parseErr) = show parseErr
@@ -20,13 +22,13 @@ instance showInterpretErr :: Show InterpretErr where
 interpretMany
   :: forall m
    . Monad m
-  => Core.Env
+  => Bindings (PrimFns m)
   -> String
-  -> m (Either InterpretErr (List Core.ExprAnn))
-interpretMany bnds src =
-  case Parser.parseMany src of
+  -> m (Either InterpretErr (List ExprAnn))
+interpretMany bindings src =
+  case parseMany src of
     Left e ->
       pure $ Left $ ParseErr e
     Right x -> do
-      { result } <- Eval.runMany bnds x
+      Tuple result _ <- runEval bindings (traverse eval x)
       pure $ lmap EvalErr result
