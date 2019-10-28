@@ -1,9 +1,9 @@
-module Test.Parser (spec) where
+module Test.Lang.Parser (spec) where
 
 import Prelude
 
 import Control.Lazy (fix)
-import Core (Ann, Expr(..), ExprAnn(..), SFrm(..), SrcLoc )
+import Lang.Core (Ann, Expr(..), ExprAnn(..), SFrm(..), SrcLoc )
 import Data.Array ((:))
 import Data.Char.Gen (genAlpha, genDigitChar, genUnicodeChar)
 import Data.Either (Either(..))
@@ -13,7 +13,7 @@ import Data.NonEmpty ((:|), singleton)
 import Data.String (length)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect.Aff (Aff)
-import Parser (parseMany, parseOne)
+import Lang.Parser (parseMany, parseOne)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
 import Test.Spec.QuickCheck (quickCheck)

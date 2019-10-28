@@ -1,10 +1,10 @@
-module Parser (Parser, ParseErr, parseMany, parseOne) where
+module Lang.Parser (Parser, ParseErr, parseMany, parseOne) where
 
 import Prelude
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
-import Core (Expr(..), ExprAnn(..), SFrm(..))
+import Lang.Core (Expr(..), ExprAnn(..), SFrm(..))
 import Data.Either (Either)
 import Data.List (List(..), manyRec)
 import Data.String.CodeUnits (toCharArray)

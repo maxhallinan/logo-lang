@@ -1,11 +1,11 @@
-module Eval (eval) where
+module Lang.Eval (eval) where
 
 import Prelude
 
 import Control.Monad.Except.Trans (mapExceptT)
 import Control.Monad.State.Trans (withStateT)
 import Control.Monad.State.Trans as S
-import Core
+import Lang.Core
   ( Ann
   , Bindings(..)
   , Env

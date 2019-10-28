@@ -4,7 +4,7 @@ import Prelude
 
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Test.Parser as Parser
+import Test.Lang.Parser as Parser
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpec)
 

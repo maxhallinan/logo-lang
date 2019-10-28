@@ -1,4 +1,4 @@
-module Interpret (InterpretErr, interpretMany) where
+module Lang.Interpret (InterpretErr, interpretMany) where
 
 import Prelude
 
@@ -7,9 +7,9 @@ import Data.Either (Either(..))
 import Data.List (List)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Core (Bindings, EvalErr, ExprAnn, PrimFns, runEval)
-import Eval (eval)
-import Parser (ParseErr, parseMany)
+import Lang.Core (Bindings, EvalErr, ExprAnn, PrimFns, runEval)
+import Lang.Eval (eval)
+import Lang.Parser (ParseErr, parseMany)
 
 data InterpretErr
   = ParseErr ParseErr

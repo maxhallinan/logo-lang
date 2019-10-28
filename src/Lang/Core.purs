@@ -1,4 +1,4 @@
-module Core
+module Lang.Core
   ( Ann(..)
   , Bindings(..)
   , Env

@@ -7,7 +7,7 @@ import Data.Foldable (intercalate)
 import Data.Traversable (sequence, traverse)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
-import Interpret (interpretMany)
+import Lang.Interpret (interpretMany)
 import Node.Encoding as Enc
 import Node.FS.Aff (exists, readdir, readTextFile, writeTextFile)
 import Node.Path as Path
