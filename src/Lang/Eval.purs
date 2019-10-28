@@ -2,9 +2,17 @@ module Lang.Eval (eval) where
 
 import Prelude
 
+import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Except.Trans (mapExceptT)
 import Control.Monad.State.Trans (withStateT)
 import Control.Monad.State.Trans as S
+import Data.Foldable (all, length)
+import Data.List as L
+import Data.Map as M
+import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
+import Data.Traversable (sequence, traverse)
+import Data.Tuple (Tuple(..))
 import Lang.Core
   ( Ann
   , Bindings(..)
@@ -14,6 +22,7 @@ import Lang.Core
   , ExprAnn(..)
   , ExprTipe(..)
   , Eval
+  , EvalErr
   , EvalState(..)
   , EvalT(..)
   , PrimFns
@@ -27,34 +36,27 @@ import Lang.Core
   , toExprTipe
   , updateEnv
   )
-import Data.Foldable (all, length)
-import Data.List as L
-import Data.Map as M
-import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
-import Data.Traversable (sequence, traverse)
-import Data.Tuple (Tuple(..))
 
 numArgsErr :: Int -> Int -> ErrTipe
 numArgsErr expected received = NumArgs { expected, received }
 
 throwNumArgsErr
-  :: forall r m a
-   . Monad m
+  :: forall m a
+   . MonadThrow EvalErr m
   => Ann
   -> Int
   -> Int
-  -> EvalT r m a
+  -> m a
 throwNumArgsErr ann expected received =
   throw ann $ numArgsErr expected received
 
 throwSFrmNumArgsErr
-  :: forall r m a
-   . Monad m
+  :: forall m a
+   . MonadThrow EvalErr m
   => Ann
   -> SFrm
   -> Args
-  -> EvalT r m a
+  -> m a
 throwSFrmNumArgsErr ann sfrm args = throwNumArgsErr ann expected received
   where expected = sfrmNumArgs sfrm
         received = length args
@@ -63,12 +65,12 @@ wrongTipeErr :: ExprTipe -> ExprTipe -> ErrTipe
 wrongTipeErr expected received = WrongTipe { expected, received }
 
 throwWrongTipeErr
-  :: forall r m a
-   . Monad m
+  :: forall m a
+   . MonadThrow EvalErr m
   => Ann
   -> ExprTipe
   -> ExprTipe
-  -> EvalT r m a
+  -> m a
 throwWrongTipeErr ann expected received =
   throw ann $ wrongTipeErr expected received
 
@@ -76,12 +78,12 @@ lstLengthErr :: Int -> Int -> ErrTipe
 lstLengthErr expected received = LstLength { expected, received }
 
 throwLstLengthErr
-  :: forall r m a
-   . Monad m
+  :: forall m a
+   . MonadThrow EvalErr m
   => Ann
   -> Int
   -> Int
-  -> EvalT r m a
+  -> m a
 throwLstLengthErr ann expected received =
   throw ann $ lstLengthErr expected received
 
@@ -89,11 +91,11 @@ unknownVarErr :: String -> ErrTipe
 unknownVarErr varName = UnknownVar { varName }
 
 throwUnknownVarErr
-  :: forall r m a
-   . Monad m
+  :: forall m a
+   . MonadThrow EvalErr m
   => Ann
   -> String
-  -> EvalT r m a
+  -> m a
 throwUnknownVarErr ann varName =
   throw ann $ unknownVarErr varName
 
@@ -101,30 +103,30 @@ unknownErr :: ErrTipe
 unknownErr = UnknownErr
 
 throwUnknownErr
-  :: forall r m a
-   . Monad m
+  :: forall m a
+   . MonadThrow EvalErr m
   => Ann
-  -> EvalT r m a
+  -> m a
 throwUnknownErr ann = throw ann unknownErr
 
 emptyFnApplicationErr :: ErrTipe
 emptyFnApplicationErr = EmptyFnApplication
 
 throwEmptyFnApplicationErr
-  :: forall r m a
-   . Monad m
+  :: forall m a
+   . MonadThrow EvalErr m
   => Ann
-  -> EvalT r m a
+  -> m a
 throwEmptyFnApplicationErr ann = throw ann emptyFnApplicationErr
 
 trueCondClauseNotFound :: ErrTipe
 trueCondClauseNotFound = TrueCondClauseNotFound
 
 throwTrueCondClauseNotFound
-  :: forall r m a
-   . Monad m
+  :: forall m a
+   . MonadThrow EvalErr m
   => Ann
-  -> EvalT r m a
+  -> m a
 throwTrueCondClauseNotFound ann = throw ann trueCondClauseNotFound
 
 eval :: forall m. Monad m => ExprAnn -> Eval m ExprAnn

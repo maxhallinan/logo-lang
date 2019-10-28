@@ -30,10 +30,10 @@ import Prelude
 
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
 import Control.Monad.Except.Trans (ExceptT, runExceptT)
-import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.State as S
 import Control.Monad.State.Trans (StateT, runStateT)
 import Control.Monad.State.Class (class MonadState)
+import Coroutine (Generator, runGenerator)
 import Data.Either (Either)
 import Data.Foldable (intercalate)
 import Data.List (List)
@@ -45,7 +45,7 @@ import Data.Tuple (Tuple(..))
 
 type Eval m = EvalT (Bindings (PrimFns m)) m
 
-newtype EvalT bindings m a = EvalT (ExceptT EvalErr (StateT (EvalState bindings) m) a)
+newtype EvalT bindings m a = EvalT (ExceptT EvalErr (StateT (EvalState bindings) (Generator Unit bindings m)) a)
 
 derive instance newtypeEvalT :: Newtype (EvalT r m a) _
 derive newtype instance functorEvalT :: Functor m => Functor (EvalT r m)
@@ -53,7 +53,7 @@ derive newtype instance applyEvalT :: Monad m => Apply (EvalT r m)
 derive newtype instance applicativeEvalT :: Monad m => Applicative (EvalT r m)
 derive newtype instance bindEvalT :: Monad m => Bind (EvalT r m)
 derive newtype instance monadEvalT :: Monad m => Monad (EvalT r m)
-derive newtype instance monadRecEvalT :: MonadRec m => MonadRec (EvalT r m)
+-- derive newtype instance monadRecEvalT :: MonadRec m => MonadRec (EvalT r m)
 derive newtype instance monadStateEvalT :: Monad m => MonadState (EvalState r) (EvalT r m)
 derive newtype instance monadErrorEvalT :: Monad m => MonadError EvalErr (EvalT r m)
 derive newtype instance monadThrowEvalT :: Monad m => MonadThrow EvalErr (EvalT r m)
@@ -64,10 +64,10 @@ runEval
   => Bindings (PrimFns m)
   -> Eval m a
   -> m (Tuple (Either EvalErr a) (Bindings (PrimFns m)))
-runEval bindings evaled = resultWithEnv <$> rn evaled evalState
+runEval bindings evaled = resultWithEnv <$> rn evaled
   where
     evalState = EvalState { bindings }
-    rn = runStateT <<< runExceptT <<< unwrap
+    rn = runGenerator <<< flip runStateT evalState <<< runExceptT <<< unwrap
 
 resultWithEnv
   :: forall a bindings
@@ -95,7 +95,7 @@ instance showEvalErr :: Show EvalErr where
       TrueCondClauseNotFound ->
         "cond found no true predicates. Add an `else` clause at the end."
 
-throw :: forall r m a. Monad m => Ann -> ErrTipe -> EvalT r m a
+throw :: forall m a. MonadThrow EvalErr m => Ann -> ErrTipe -> m a
 throw ann name = throwError $ EvalErr name ann.srcSpan
 
 data ErrTipe

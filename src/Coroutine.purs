@@ -2,12 +2,23 @@ module Coroutine where
 
 import Prelude
 
-import Control.Monad (ap)
 import Control.Monad.Trans.Class (class MonadTrans)
 import Data.Either (Either(..), either)
 import Data.Newtype (class Newtype, unwrap)
 
 type Generator i o m = CoroutineT (Yield i o) m
+
+runGenerator :: forall o m r. Monad m => Generator Unit o m r -> m r
+runGenerator (CoroutineT m) = do
+  e <- m
+  case e of
+    Left (Yield _ continuation) ->
+      runGenerator (continuation unit)
+    Right r ->
+      pure r
+
+yield :: forall i o m r. Monad m => o -> (i -> Generator i o m r) -> Generator i o m r
+yield x continuation = CoroutineT $ pure $ Left $ Yield x continuation
 
 data Yield i o x = Yield o (i -> x)
 
@@ -37,3 +48,6 @@ instance monadCoroutineT :: (Functor s, Monad m) => Monad (CoroutineT s m)
 
 instance monadTransCoroutineT :: MonadTrans (CoroutineT s) where
   lift = CoroutineT <<< liftM1 Right
+
+-- derive newtype instance monadRecCoroutineT :: MonadRec CoroutineT 
+-- derive newtype instance monadRecCoroutineT :: MonadRec m => MonadRec (CoroutineT s m)
