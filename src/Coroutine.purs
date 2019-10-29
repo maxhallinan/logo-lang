@@ -20,6 +20,9 @@ runGenerator (CoroutineT m) = do
 yield :: forall i o m r. Monad m => o -> (i -> Generator i o m r) -> Generator i o m r
 yield x continuation = CoroutineT $ pure $ Left $ Yield x continuation
 
+done :: forall i o m r. Monad m => r -> Generator i o m r
+done = CoroutineT <<< pure <<< Right
+
 data Yield i o x = Yield o (i -> x)
 
 derive instance functorYield :: Functor (Yield i o)
@@ -48,6 +51,3 @@ instance monadCoroutineT :: (Functor s, Monad m) => Monad (CoroutineT s m)
 
 instance monadTransCoroutineT :: MonadTrans (CoroutineT s) where
   lift = CoroutineT <<< liftM1 Right
-
--- derive newtype instance monadRecCoroutineT :: MonadRec CoroutineT 
--- derive newtype instance monadRecCoroutineT :: MonadRec m => MonadRec (CoroutineT s m)

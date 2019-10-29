@@ -16,7 +16,7 @@ module Lang.Core
   , isTrue
   , mkFalse
   , mkTrue
-  , runEval
+  , runEvalT
   , SrcLoc(..)
   , SrcSpan(..)
   , SFrm(..)
@@ -33,7 +33,7 @@ import Control.Monad.Except.Trans (ExceptT, runExceptT)
 import Control.Monad.State as S
 import Control.Monad.State.Trans (StateT, runStateT)
 import Control.Monad.State.Class (class MonadState)
-import Coroutine (Generator, runGenerator)
+import Coroutine (CoroutineT, Yield, runGenerator)
 import Data.Either (Either)
 import Data.Foldable (intercalate)
 import Data.List (List)
@@ -43,9 +43,9 @@ import Data.Map as M
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple (Tuple(..))
 
-type Eval m = EvalT (Bindings (PrimFns m)) m
+type Eval m = CoroutineT (Yield Unit (Bindings (PrimFns m))) (EvalT (Bindings (PrimFns m)) m)
 
-newtype EvalT bindings m a = EvalT (ExceptT EvalErr (StateT (EvalState bindings) (Generator Unit bindings m)) a)
+newtype EvalT bindings m a = EvalT (ExceptT EvalErr (StateT (EvalState bindings) m) a)
 
 derive instance newtypeEvalT :: Newtype (EvalT r m a) _
 derive newtype instance functorEvalT :: Functor m => Functor (EvalT r m)
@@ -53,21 +53,20 @@ derive newtype instance applyEvalT :: Monad m => Apply (EvalT r m)
 derive newtype instance applicativeEvalT :: Monad m => Applicative (EvalT r m)
 derive newtype instance bindEvalT :: Monad m => Bind (EvalT r m)
 derive newtype instance monadEvalT :: Monad m => Monad (EvalT r m)
--- derive newtype instance monadRecEvalT :: MonadRec m => MonadRec (EvalT r m)
 derive newtype instance monadStateEvalT :: Monad m => MonadState (EvalState r) (EvalT r m)
 derive newtype instance monadErrorEvalT :: Monad m => MonadError EvalErr (EvalT r m)
 derive newtype instance monadThrowEvalT :: Monad m => MonadThrow EvalErr (EvalT r m)
 
-runEval
-  :: forall m a
+runEvalT
+  :: forall bindings m a
    . Monad m
-  => Bindings (PrimFns m)
-  -> Eval m a
-  -> m (Tuple (Either EvalErr a) (Bindings (PrimFns m)))
-runEval bindings evaled = resultWithEnv <$> rn evaled
+  => bindings
+  -> EvalT bindings m a
+  -> m (Tuple (Either EvalErr a) bindings)
+runEvalT bindings evaled = resultWithEnv <$> rn evaled
   where
     evalState = EvalState { bindings }
-    rn = runGenerator <<< flip runStateT evalState <<< runExceptT <<< unwrap
+    rn = flip runStateT evalState <<< runExceptT <<< unwrap
 
 resultWithEnv
   :: forall a bindings
@@ -179,7 +178,9 @@ data SFrm
   | IsAtm
   | IsEq
   | Lambda
+  | Pause
   | Quote
+
 derive instance eqSFrm :: Eq SFrm
 
 instance showSFrm :: Show SFrm where
@@ -193,9 +194,11 @@ instance showSFrm :: Show SFrm where
   show IsAtm = "atom?"
   show IsEq = "equal?"
   show Lambda = "lambda"
+  show Pause = "pause"
   show Quote = "quote"
 
 sfrmNumArgs :: SFrm -> Int
+sfrmNumArgs Pause = 0
 sfrmNumArgs Cond = 1
 sfrmNumArgs Conz = 2
 sfrmNumArgs Def = 1

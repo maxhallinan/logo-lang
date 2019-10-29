@@ -2,12 +2,13 @@ module Lang.Interpret (InterpretErr, interpretMany) where
 
 import Prelude
 
+import Coroutine (runGenerator)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.List (List)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Lang.Core (Bindings, EvalErr, ExprAnn, PrimFns, runEval)
+import Lang.Core (Bindings, EvalErr, ExprAnn, PrimFns, runEvalT)
 import Lang.Eval (eval)
 import Lang.Parser (ParseErr, parseMany)
 
@@ -30,5 +31,5 @@ interpretMany bindings src =
     Left e ->
       pure $ Left $ ParseErr e
     Right x -> do
-      Tuple result _ <- runEval bindings (traverse eval x)
+      Tuple result _ <- runEvalT bindings (runGenerator (traverse eval x))
       pure $ lmap EvalErr result

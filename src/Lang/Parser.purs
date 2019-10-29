@@ -77,6 +77,8 @@ symbol = annotate $ do
       pure $ SFrm Lambda
     "if" ->
       pure $ SFrm If
+    "pause" ->
+      pure $ SFrm Pause
     "quote" ->
       pure $ SFrm Quote
     _ ->

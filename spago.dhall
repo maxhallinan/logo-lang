@@ -8,6 +8,7 @@ You can edit this file as you like.
     [ "aff"
     , "console"
     , "control"
+    , "debug"
     , "effect"
     , "foldable-traversable"
     , "newtype"
